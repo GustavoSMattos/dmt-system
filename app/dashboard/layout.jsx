@@ -8,6 +8,7 @@ import MovimentacaoLoteTab from '@/components/estoque/MovimentacaoLoteTab';
 import LeituraNFTab from '@/components/estoque/LeituraNFTab';
 import BomTrailersTab from '@/components/bom/BomTrailersTab';
 import LogsTab from '@/components/logs/LogsTab';
+import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
 
 export default function DashboardLayout({ children }) {
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
@@ -31,6 +32,8 @@ export default function DashboardLayout({ children }) {
           return <BomTrailersTab />;
         case 'logs':
           return <LogsTab />;
+        case 'senha':
+          return <AlterarSenhaTab />;
         default:
           return children;
       }
@@ -59,6 +62,10 @@ export default function DashboardLayout({ children }) {
           <button onClick={() => setAbaAtiva('xml')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'xml' ? '#1e293b' : 'transparent', color: abaAtiva === 'xml' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Entrada por NF-e (XML)</button>
           <button onClick={() => setAbaAtiva('bom')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'bom' ? '#1e293b' : 'transparent', color: abaAtiva === 'bom' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Estruturas BOM</button>
           <button onClick={() => setAbaAtiva('logs')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'logs' ? '#1e293b' : 'transparent', color: abaAtiva === 'logs' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Log de Atividades</button>
+          
+          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
+            <button onClick={() => setAbaAtiva('senha')} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'senha' ? '#1e293b' : 'transparent', color: abaAtiva === 'senha' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Alterar Senha</button>
+          </div>
         </nav>
       </aside>
 
