@@ -31,7 +31,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { codigo, nome, categoria, unidade, quantidade, valor_unitario, estoque_minimo, id_fornecedor } = body;
+    const { codigo, nome, categoria, unidade, quantidade, valor_unitario, estoque_minimo, leadtime, id_fornecedor } = body;
 
     if (!codigo || !nome || !categoria || !unidade) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(req) {
         quantidade: parseFloat(quantidade) || 0,
         valor_unitario: parseFloat(valor_unitario) || 0,
         estoque_minimo: parseFloat(estoque_minimo) || 0,
+        leadtime: leadtime !== '' && leadtime !== null && leadtime !== undefined ? parseInt(leadtime, 10) : 0,
         id_fornecedor: id_fornecedor || null,
       })
       .select()
@@ -71,7 +72,7 @@ export async function POST(req) {
   }
 }
 
-// PUT: Atualiza produto cadastrado (Nome, Categoria, Estoque Mínimo, etc.)
+// PUT: Atualiza produto cadastrado (Nome, Categoria, Estoque Mínimo, Preço e Leadtime)
 export async function PUT(req) {
   try {
     const token = req.cookies.get('session_token')?.value;
@@ -83,7 +84,7 @@ export async function PUT(req) {
     }
 
     const body = await req.json();
-    const { id, nome, categoria, estoque_minimo, valor_unitario } = body;
+    const { id, nome, categoria, estoque_minimo, valor_unitario, leadtime } = body;
 
     if (!id) return NextResponse.json({ error: 'ID do produto não informado.' }, { status: 400 });
 
@@ -93,7 +94,8 @@ export async function PUT(req) {
         nome,
         categoria,
         estoque_minimo: parseFloat(estoque_minimo) || 0,
-        ...(valor_unitario !== undefined && { valor_unitario: parseFloat(valor_unitario) || 0 }),
+        valor_unitario: parseFloat(valor_unitario) || 0,
+        leadtime: leadtime !== '' && leadtime !== null && leadtime !== undefined ? parseInt(leadtime, 10) : 0,
       })
       .eq('id', id)
       .select()
@@ -104,7 +106,12 @@ export async function PUT(req) {
     await supabaseAdmin.from('logs_atividade').insert({
       id_usuario: user.id,
       acao: 'EDICAO_PRODUTO',
-      detalhes: { id_produto: id, nome_atualizado: nome },
+      detalhes: {
+        id_produto: id,
+        nome_atualizado: nome,
+        valor_unitario: parseFloat(valor_unitario) || 0,
+        leadtime: parseInt(leadtime, 10) || 0,
+      },
     });
 
     return NextResponse.json(data);
