@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { XMLParser } from 'fast-xml-parser';
+import { supabaseAdmin } from '@/lib/supabase';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
@@ -48,10 +49,24 @@ export async function POST(req) {
     let detList = infNFe.det;
     if (!Array.isArray(detList)) detList = [detList];
 
+    // Busca todos os códigos/SKUs já cadastrados na base para comparação
+    const { data: produtosExistentes } = await supabaseAdmin
+      .from('produtos')
+      .select('codigo, nome');
+
+    const codigosCadastrados = new Set(
+      (produtosExistentes || []).map((p) => String(p.codigo).trim().toLowerCase())
+    );
+
     const produtos = detList.map((item, index) => {
       const prod = item.prod || {};
-      const codigoProduto = (prod.cEAN && prod.cEAN !== 'SEM GTIN') ? String(prod.cEAN) : String(prod.cProd || '');
-      
+      const codigoProduto =
+        prod.cEAN && prod.cEAN !== 'SEM GTIN'
+          ? String(prod.cEAN).trim()
+          : String(prod.cProd || '').trim();
+
+      const jaExiste = codigosCadastrados.has(codigoProduto.toLowerCase());
+
       return {
         id_temp: index + 1,
         codigo: codigoProduto,
@@ -60,6 +75,7 @@ export async function POST(req) {
         unidade: prod.uCom || 'UN',
         quantidade: parseFloat(prod.qCom) || 0,
         valor_unitario: parseFloat(prod.vUnCom) || 0,
+        is_novo: !jaExiste,
       };
     });
 
