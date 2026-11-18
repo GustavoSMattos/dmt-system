@@ -22,7 +22,9 @@ export default function BomTrailersTab() {
     categoria: '',
     descricao: '',
   });
-  const [componentesForm, setComponentesForm] = useState([{ id_produto: '', quantidade_necessaria: 1 }]);
+  const [componentesForm, setComponentesForm] = useState([
+    { id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
+  ]);
 
   // Modal de Confirmação para Iniciar Edição
   const [bomParaConfirmarEdicao, setBomParaConfirmarEdicao] = useState(null);
@@ -41,11 +43,7 @@ export default function BomTrailersTab() {
 
       if (resBoms.ok) setBoms(Array.isArray(dataBoms) ? dataBoms : []);
       if (resProds.ok) {
-        const listaProds = Array.isArray(dataProds) ? dataProds : [];
-        setProdutosDisponiveis(listaProds);
-        if (listaProds.length > 0 && componentesForm[0].id_produto === '') {
-          setComponentesForm([{ id_produto: listaProds[0].id, quantidade_necessaria: 1 }]);
-        }
+        setProdutosDisponiveis(Array.isArray(dataProds) ? dataProds : []);
       }
     } catch (err) {
       setMensagem({ tipo: 'erro', texto: 'Erro ao carregar dados de BOM e produtos.' });
@@ -68,15 +66,39 @@ export default function BomTrailersTab() {
     return bateCategoria && bateNome;
   });
 
-  // Manipulação dos itens no formulário
+  // Manipulação dos itens no formulário (Autocomplete igual à Remessa em Lote)
   const handleAddComponente = () => {
-    const primeiroId = produtosDisponiveis.length > 0 ? produtosDisponiveis[0].id : '';
-    setComponentesForm([...componentesForm, { id_produto: primeiroId, quantidade_necessaria: 1 }]);
+    setComponentesForm([
+      ...componentesForm,
+      { id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
+    ]);
   };
 
   const handleRemoveComponente = (index) => {
     const novaLista = componentesForm.filter((_, i) => i !== index);
-    setComponentesForm(novaLista.length > 0 ? novaLista : [{ id_produto: produtosDisponiveis[0]?.id || '', quantidade_necessaria: 1 }]);
+    setComponentesForm(
+      novaLista.length > 0
+        ? novaLista
+        : [{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
+    );
+  };
+
+  // Atualiza texto digitado e limpa o ID até que o usuário clique em um produto válido da base
+  const handleBuscaComponenteChange = (index, texto) => {
+    const novaLista = [...componentesForm];
+    novaLista[index].termoBusca = texto;
+    novaLista[index].id_produto = '';
+    novaLista[index].dropdownAberto = true;
+    setComponentesForm(novaLista);
+  };
+
+  // Seleciona oficialmente o produto cadastrado
+  const handleSelecionarComponente = (index, prod) => {
+    const novaLista = [...componentesForm];
+    novaLista[index].id_produto = prod.id;
+    novaLista[index].termoBusca = `${prod.codigo} - ${prod.nome} (${prod.unidade})`;
+    novaLista[index].dropdownAberto = false;
+    setComponentesForm(novaLista);
   };
 
   const handleComponenteChange = (index, field, value) => {
@@ -88,9 +110,18 @@ export default function BomTrailersTab() {
   // Salvar Nova BOM ou Atualizar BOM Editada
   const handleSalvarBom = async (e) => {
     e.preventDefault();
-    setSalvando(true);
     setMensagem({ tipo: '', texto: '' });
 
+    // Valida se todos os componentes têm um produto válido da base selecionado
+    const itemInvalido = componentesForm.find((comp) => !comp.id_produto);
+    if (itemInvalido) {
+      return setMensagem({
+        tipo: 'erro',
+        texto: 'Selecione um produto válido da lista suspensa para todos os componentes antes de salvar a BOM.',
+      });
+    }
+
+    setSalvando(true);
     try {
       const metodo = modoEdicao ? 'PUT' : 'POST';
       const payload = {
@@ -98,7 +129,10 @@ export default function BomTrailersTab() {
         nome: form.nome,
         categoria: form.categoria.trim(),
         descricao: form.descricao,
-        componentes: componentesForm,
+        componentes: componentesForm.map((comp) => ({
+          id_produto: comp.id_produto,
+          quantidade_necessaria: comp.quantidade_necessaria,
+        })),
       };
 
       const res = await fetch('/api/trailers', {
@@ -143,15 +177,21 @@ export default function BomTrailersTab() {
       descricao: bom.descricao || '',
     });
 
-    const itensMapeados = (bom.trailer_componentes || []).map((tc) => ({
-      id_produto: tc.id_produto,
-      quantidade_necessaria: tc.quantidade_necessaria,
-    }));
+    const itensMapeados = (bom.trailer_componentes || []).map((tc) => {
+      const prod = tc.produtos || produtosDisponiveis.find((p) => p.id === tc.id_produto);
+      const rotulo = prod ? `${prod.codigo} - ${prod.nome} (${prod.unidade})` : '';
+      return {
+        id_produto: tc.id_produto,
+        termoBusca: rotulo,
+        dropdownAberto: false,
+        quantidade_necessaria: tc.quantidade_necessaria,
+      };
+    });
 
     setComponentesForm(
       itensMapeados.length > 0
         ? itensMapeados
-        : [{ id_produto: produtosDisponiveis[0]?.id || '', quantidade_necessaria: 1 }]
+        : [{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
     );
 
     setBomParaConfirmarEdicao(null);
@@ -163,7 +203,7 @@ export default function BomTrailersTab() {
     setModoEdicao(false);
     setBomEditandoId(null);
     setForm({ nome: '', categoria: '', descricao: '' });
-    setComponentesForm([{ id_produto: produtosDisponiveis[0]?.id || '', quantidade_necessaria: 1 }]);
+    setComponentesForm([{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]);
   };
 
   // Exporta a BOM completa para arquivo .CSV
@@ -191,7 +231,6 @@ export default function BomTrailersTab() {
       ]);
     });
 
-    // Adiciona o BOM UTF-8 (\uFEFF) para garantir acentuação correta no Excel
     const csvContent = '\uFEFF' + linhas.map((e) => e.join(';')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -224,7 +263,7 @@ export default function BomTrailersTab() {
           )}
         </div>
         <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '14px' }}>
-          Defina o nome, a categoria (digite uma nova ou escolha existente) e os componentes necessários para a montagem.
+          Defina o nome, a categoria e busque os componentes cadastrados pelo código (SKU) ou nome.
         </p>
 
         {mensagem.texto && (
@@ -297,43 +336,115 @@ export default function BomTrailersTab() {
             <p style={{ color: '#94a3b8', fontSize: '14px' }}>Cadastre produtos no estoque antes de montar uma BOM.</p>
           ) : (
             <div>
-              {componentesForm.map((comp, index) => (
-                <div key={index} style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center' }}>
-                  <select
-                    value={comp.id_produto}
-                    onChange={(e) => handleComponenteChange(index, 'id_produto', e.target.value)}
-                    required
-                    style={{ flex: 3, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                  >
-                    {produtosDisponiveis.map((prod) => (
-                      <option key={prod.id} value={prod.id}>
-                        {prod.codigo} - {prod.nome} ({prod.unidade})
-                      </option>
-                    ))}
-                  </select>
+              {componentesForm.map((comp, index) => {
+                const termo = comp.termoBusca.trim().toLowerCase();
+                const sugestoes = produtosDisponiveis.filter(
+                  (p) =>
+                    p.codigo?.toLowerCase().includes(termo) ||
+                    p.nome?.toLowerCase().includes(termo)
+                );
 
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={comp.quantidade_necessaria}
-                    onChange={(e) => handleComponenteChange(index, 'quantidade_necessaria', e.target.value)}
-                    placeholder="Qtd"
-                    required
-                    style={{ width: '130px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                  />
+                return (
+                  <div key={index} style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {/* Campo de Busca Autocomplete Restrito aos Produtos da Base */}
+                    <div style={{ flex: 3, minWidth: '260px', position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Digite o código ou nome do produto..."
+                        value={comp.termoBusca}
+                        onChange={(e) => handleBuscaComponenteChange(index, e.target.value)}
+                        onFocus={() => handleComponenteChange(index, 'dropdownAberto', true)}
+                        onBlur={() => {
+                          setTimeout(() => handleComponenteChange(index, 'dropdownAberto', false), 180);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          border: comp.id_produto ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                          backgroundColor: comp.id_produto ? '#f0fdf4' : '#fff',
+                          fontSize: '14px',
+                          outline: 'none',
+                        }}
+                      />
 
-                  {componentesForm.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveComponente(index)}
-                      style={{ padding: '10px 14px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                    >
-                      X
-                    </button>
-                  )}
-                </div>
-              ))}
+                      {comp.dropdownAberto && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            maxHeight: '220px',
+                            overflowY: 'auto',
+                            backgroundColor: '#fff',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            zIndex: 50,
+                            marginTop: '4px',
+                          }}
+                        >
+                          {sugestoes.length === 0 ? (
+                            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#94a3b8' }}>
+                              Nenhum produto cadastrado encontrado para "{comp.termoBusca}".
+                            </div>
+                          ) : (
+                            sugestoes.map((prod) => (
+                              <div
+                                key={prod.id}
+                                onMouseDown={() => handleSelecionarComponente(index, prod)}
+                                style={{
+                                  padding: '10px 12px',
+                                  cursor: 'pointer',
+                                  borderBottom: '1px solid #f1f5f9',
+                                  fontSize: '13px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#fff')}
+                              >
+                                <span>
+                                  <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>
+                                    {prod.codigo}
+                                  </strong>{' '}
+                                  - {prod.nome} ({prod.unidade})
+                                </span>
+                                <span style={{ color: '#64748b', fontSize: '12px', marginLeft: '8px' }}>
+                                  Saldo: {prod.quantidade} {prod.unidade}
+                                </span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={comp.quantidade_necessaria}
+                      onChange={(e) => handleComponenteChange(index, 'quantidade_necessaria', e.target.value)}
+                      placeholder="Qtd"
+                      required
+                      style={{ width: '130px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    />
+
+                    {componentesForm.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveComponente(index)}
+                        style={{ padding: '10px 14px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button

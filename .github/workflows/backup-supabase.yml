@@ -1,0 +1,33 @@
+name: Backup Automatico Supabase
+
+on:
+  schedule:
+    # Executa todos os dias às 03:00 UTC (00:00 no horário de Brasília)
+    - cron: '0 3 * * *'
+  # Permite disparar um backup manual a qualquer momento pelo botão no GitHub
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Instalar cliente PostgreSQL (pg_dump)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Gerar dump SQL completo da base
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          DATA=$(date +%Y-%m-%d_%H-%M)
+          pg_dump "$DB_URL" --clean --if-exists --no-owner --no-privileges -f "backup_dmt_${DATA}.sql"
+          gzip "backup_dmt_${DATA}.sql"
+
+      - name: Salvar arquivo de backup nos Artefatos do GitHub (Retenção 30 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-dmt-system-${{ github.run_number }}
+          path: backup_dmt_*.sql.gz
+          retention-days: 30
