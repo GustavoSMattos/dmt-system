@@ -8,8 +8,8 @@ import MovimentacaoLoteTab from '@/components/estoque/MovimentacaoLoteTab';
 import LeituraNFTab from '@/components/estoque/LeituraNFTab';
 import DesperdicioTab from '@/components/estoque/DesperdicioTab';
 import BomTrailersTab from '@/components/bom/BomTrailersTab';
-import LogsTab from '@/components/logs/LogsTab';
 import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
+import LogsTab from '@/components/logs/LogsTab';
 
 export default function DashboardLayout({ children }) {
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
