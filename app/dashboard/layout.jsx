@@ -6,6 +6,7 @@ import CadastrarProdutoTab from '@/components/estoque/CadastrarProdutoTab';
 import FornecedoresTab from '@/components/fornecedores/FornecedoresTab';
 import MovimentacaoLoteTab from '@/components/estoque/MovimentacaoLoteTab';
 import LeituraNFTab from '@/components/estoque/LeituraNFTab';
+import DesperdicioTab from '@/components/estoque/DesperdicioTab';
 import BomTrailersTab from '@/components/bom/BomTrailersTab';
 import LogsTab from '@/components/logs/LogsTab';
 import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
@@ -28,6 +29,8 @@ export default function DashboardLayout({ children }) {
           return <MovimentacaoLoteTab />;
         case 'xml':
           return <LeituraNFTab />;
+        case 'desperdicio':
+          return <DesperdicioTab />;
         case 'bom':
           return <BomTrailersTab />;
         case 'logs':
@@ -60,6 +63,7 @@ export default function DashboardLayout({ children }) {
           <button onClick={() => setAbaAtiva('fornecedores')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'fornecedores' ? '#1e293b' : 'transparent', color: abaAtiva === 'fornecedores' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Fornecedores</button>
           <button onClick={() => setAbaAtiva('lote')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'lote' ? '#1e293b' : 'transparent', color: abaAtiva === 'lote' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Entrada/Saída em Lote</button>
           <button onClick={() => setAbaAtiva('xml')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'xml' ? '#1e293b' : 'transparent', color: abaAtiva === 'xml' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Entrada por NF-e (XML)</button>
+          <button onClick={() => setAbaAtiva('desperdicio')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'desperdicio' ? '#1e293b' : 'transparent', color: abaAtiva === 'desperdicio' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Desperdício</button>
           <button onClick={() => setAbaAtiva('bom')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'bom' ? '#1e293b' : 'transparent', color: abaAtiva === 'bom' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Estruturas BOM</button>
           <button onClick={() => setAbaAtiva('logs')} style={{ padding: '12px 16px', textAlign: 'left', backgroundColor: abaAtiva === 'logs' ? '#1e293b' : 'transparent', color: abaAtiva === 'logs' ? '#38bdf8' : '#94a3b8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>Log de Atividades</button>
           
