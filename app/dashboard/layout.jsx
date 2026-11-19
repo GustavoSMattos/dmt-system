@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import EstoqueTab from '@/components/estoque/EstoqueTab';
 import CadastrarProdutoTab from '@/components/estoque/CadastrarProdutoTab';
+import ServicosTab from '@/components/servicos/ServicosTab';
 import FornecedoresTab from '@/components/fornecedores/FornecedoresTab';
 import MovimentacaoLoteTab from '@/components/estoque/MovimentacaoLoteTab';
 import LeituraNFTab from '@/components/estoque/LeituraNFTab';
 import DesperdicioTab from '@/components/estoque/DesperdicioTab';
 import BomTrailersTab from '@/components/bom/BomTrailersTab';
-import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
 import LogsTab from '@/components/logs/LogsTab';
+import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
 
 export default function DashboardLayout({ children }) {
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
@@ -18,6 +19,7 @@ export default function DashboardLayout({ children }) {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'produtos', label: 'Estoque de Produtos' },
     { id: 'novo_produto', label: '+ Cadastrar Produto' },
+    { id: 'servicos', label: 'Serviços' },
     { id: 'fornecedores', label: 'Fornecedores' },
     { id: 'lote', label: 'Entrada/Saída em Lote' },
     { id: 'xml', label: 'Entrada por NF-e' },
@@ -35,6 +37,8 @@ export default function DashboardLayout({ children }) {
           return <EstoqueTab />;
         case 'novo_produto':
           return <CadastrarProdutoTab />;
+        case 'servicos':
+          return <ServicosTab />;
         case 'fornecedores':
           return <FornecedoresTab />;
         case 'lote':
@@ -85,7 +89,6 @@ export default function DashboardLayout({ children }) {
           flexDirection: 'column',
         }}
       >
-        {/* ÁREA EXCLUSIVA PARA IMAGEM DO LOGOTIPO (SEM TEXTO) */}
         <div
           onClick={() => setAbaAtiva('dashboard')}
           style={{
@@ -112,7 +115,6 @@ export default function DashboardLayout({ children }) {
           />
         </div>
 
-        {/* NAVEGAÇÃO PRINCIPAL */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
           {menuItens.map((item) => {
             const ativo = abaAtiva === item.id;
@@ -141,7 +143,6 @@ export default function DashboardLayout({ children }) {
             );
           })}
 
-          {/* RODAPÉ DA SIDEBAR: ALTERAR SENHA */}
           <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(212, 175, 55, 0.15)' }}>
             <button
               onClick={() => setAbaAtiva('senha')}

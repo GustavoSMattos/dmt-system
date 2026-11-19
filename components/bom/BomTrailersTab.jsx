@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 export default function BomTrailersTab() {
   const [boms, setBoms] = useState([]);
-  const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
+  const [itensCatalogo, setItensCatalogo] = useState([]); // Produtos + Serviços unificados
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
@@ -21,7 +21,7 @@ export default function BomTrailersTab() {
     descricao: '',
   });
   const [componentesForm, setComponentesForm] = useState([
-    { id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
+    { id_item: '', tipo: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
   ]);
 
   const [bomParaConfirmarEdicao, setBomParaConfirmarEdicao] = useState(null);
@@ -30,20 +30,41 @@ export default function BomTrailersTab() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const [resBoms, resProds] = await Promise.all([
+      const [resBoms, resProds, resServs] = await Promise.all([
         fetch('/api/trailers'),
         fetch('/api/produtos'),
+        fetch('/api/servicos'),
       ]);
 
       const dataBoms = await resBoms.json();
       const dataProds = await resProds.json();
+      const dataServs = await resServs.json();
 
       if (resBoms.ok) setBoms(Array.isArray(dataBoms) ? dataBoms : []);
-      if (resProds.ok) {
-        setProdutosDisponiveis(Array.isArray(dataProds) ? dataProds : []);
-      }
+
+      const listaProdutos = (resProds.ok && Array.isArray(dataProds) ? dataProds : []).map((p) => ({
+        id: p.id,
+        tipo: 'PRODUTO',
+        codigo: p.codigo,
+        nome: p.nome,
+        unidade: p.unidade,
+        valor: Number(p.valor_unitario || 0),
+        saldo: Number(p.quantidade || 0),
+      }));
+
+      const listaServicos = (resServs.ok && Array.isArray(dataServs) ? dataServs : []).map((s) => ({
+        id: s.id,
+        tipo: 'SERVICO',
+        codigo: s.codigo,
+        nome: s.nome,
+        unidade: s.unidade,
+        valor: Number(s.valor || 0),
+        saldo: null,
+      }));
+
+      setItensCatalogo([...listaProdutos, ...listaServicos]);
     } catch {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao carregar dados de BOM e produtos.' });
+      setMensagem({ tipo: 'erro', texto: 'Erro ao carregar dados de BOM, produtos e serviços.' });
     } finally {
       setLoading(false);
     }
@@ -64,7 +85,7 @@ export default function BomTrailersTab() {
   const handleAddComponente = () => {
     setComponentesForm([
       ...componentesForm,
-      { id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
+      { id_item: '', tipo: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 },
     ]);
   };
 
@@ -73,22 +94,24 @@ export default function BomTrailersTab() {
     setComponentesForm(
       novaLista.length > 0
         ? novaLista
-        : [{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
+        : [{ id_item: '', tipo: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
     );
   };
 
   const handleBuscaComponenteChange = (index, texto) => {
     const novaLista = [...componentesForm];
     novaLista[index].termoBusca = texto;
-    novaLista[index].id_produto = '';
+    novaLista[index].id_item = '';
+    novaLista[index].tipo = '';
     novaLista[index].dropdownAberto = true;
     setComponentesForm(novaLista);
   };
 
-  const handleSelecionarComponente = (index, prod) => {
+  const handleSelecionarComponente = (index, item) => {
     const novaLista = [...componentesForm];
-    novaLista[index].id_produto = prod.id;
-    novaLista[index].termoBusca = `${prod.codigo} - ${prod.nome} (${prod.unidade})`;
+    novaLista[index].id_item = item.id;
+    novaLista[index].tipo = item.tipo;
+    novaLista[index].termoBusca = `[${item.tipo === 'SERVICO' ? 'SERVIÇO' : 'PRODUTO'}] ${item.codigo} - ${item.nome} (${item.unidade})`;
     novaLista[index].dropdownAberto = false;
     setComponentesForm(novaLista);
   };
@@ -103,11 +126,11 @@ export default function BomTrailersTab() {
     e.preventDefault();
     setMensagem({ tipo: '', texto: '' });
 
-    const itemInvalido = componentesForm.find((comp) => !comp.id_produto);
+    const itemInvalido = componentesForm.find((comp) => !comp.id_item || !comp.tipo);
     if (itemInvalido) {
       return setMensagem({
         tipo: 'erro',
-        texto: 'Selecione um produto válido da lista suspensa para todos os componentes antes de salvar a BOM.',
+        texto: 'Selecione um produto ou serviço válido da lista suspensa para todos os itens antes de salvar a BOM.',
       });
     }
 
@@ -120,7 +143,8 @@ export default function BomTrailersTab() {
         categoria: form.categoria.trim(),
         descricao: form.descricao,
         componentes: componentesForm.map((comp) => ({
-          id_produto: comp.id_produto,
+          id_item: comp.id_item,
+          tipo: comp.tipo,
           quantidade_necessaria: comp.quantidade_necessaria,
         })),
       };
@@ -166,20 +190,33 @@ export default function BomTrailersTab() {
     });
 
     const itensMapeados = (bom.trailer_componentes || []).map((tc) => {
-      const prod = tc.produtos || produtosDisponiveis.find((p) => p.id === tc.id_produto);
-      const rotulo = prod ? `${prod.codigo} - ${prod.nome} (${prod.unidade})` : '';
-      return {
-        id_produto: tc.id_produto,
-        termoBusca: rotulo,
-        dropdownAberto: false,
-        quantidade_necessaria: tc.quantidade_necessaria,
-      };
+      if (tc.id_servico || tc.servicos) {
+        const serv = tc.servicos || itensCatalogo.find((i) => i.tipo === 'SERVICO' && i.id === tc.id_servico);
+        const rotulo = serv ? `[SERVIÇO] ${serv.codigo} - ${serv.nome} (${serv.unidade})` : '';
+        return {
+          id_item: tc.id_servico,
+          tipo: 'SERVICO',
+          termoBusca: rotulo,
+          dropdownAberto: false,
+          quantidade_necessaria: tc.quantidade_necessaria,
+        };
+      } else {
+        const prod = tc.produtos || itensCatalogo.find((i) => i.tipo === 'PRODUTO' && i.id === tc.id_produto);
+        const rotulo = prod ? `[PRODUTO] ${prod.codigo} - ${prod.nome} (${prod.unidade})` : '';
+        return {
+          id_item: tc.id_produto,
+          tipo: 'PRODUTO',
+          termoBusca: rotulo,
+          dropdownAberto: false,
+          quantidade_necessaria: tc.quantidade_necessaria,
+        };
+      }
     });
 
     setComponentesForm(
       itensMapeados.length > 0
         ? itensMapeados
-        : [{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
+        : [{ id_item: '', tipo: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]
     );
 
     setBomParaConfirmarEdicao(null);
@@ -191,27 +228,29 @@ export default function BomTrailersTab() {
     setModoEdicao(false);
     setBomEditandoId(null);
     setForm({ nome: '', categoria: '', descricao: '' });
-    setComponentesForm([{ id_produto: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]);
+    setComponentesForm([{ id_item: '', tipo: '', termoBusca: '', dropdownAberto: false, quantidade_necessaria: 1 }]);
   };
 
   const handleBaixarCSV = (bom) => {
     const linhas = [
-      ['BOM', 'Categoria', 'Descricao', 'Codigo_SKU', 'Produto', 'Unidade', 'Qtd_Necessaria', 'Valor_Unitario', 'Subtotal'],
+      ['BOM', 'Categoria', 'Descricao', 'Tipo', 'Codigo', 'Item', 'Unidade', 'Qtd_Necessaria', 'Valor_Unitario', 'Subtotal'],
     ];
 
     (bom.trailer_componentes || []).forEach((item) => {
-      const prod = item.produtos || {};
+      const isServico = Boolean(item.id_servico || item.servicos);
+      const dadosItem = isServico ? item.servicos || {} : item.produtos || {};
       const qtd = Number(item.quantidade_necessaria || 0);
-      const valUnit = Number(prod.valor_unitario || 0);
+      const valUnit = Number(isServico ? dadosItem.valor || 0 : dadosItem.valor_unitario || 0);
       const subtotal = (qtd * valUnit).toFixed(2);
 
       linhas.push([
         `"${bom.nome}"`,
         `"${bom.categoria}"`,
         `"${(bom.descricao || '').replace(/"/g, '""')}"`,
-        `"${prod.codigo || ''}"`,
-        `"${prod.nome || ''}"`,
-        `"${prod.unidade || ''}"`,
+        `"${isServico ? 'SERVICO' : 'PRODUTO'}"`,
+        `"${dadosItem.codigo || ''}"`,
+        `"${dadosItem.nome || ''}"`,
+        `"${dadosItem.unidade || ''}"`,
         qtd.toString().replace('.', ','),
         valUnit.toFixed(2).replace('.', ','),
         subtotal.replace('.', ','),
@@ -250,7 +289,7 @@ export default function BomTrailersTab() {
           )}
         </div>
         <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '14px' }}>
-          Defina o nome, a categoria e busque os componentes cadastrados pelo código (SKU) ou nome.
+          Defina o nome, a categoria e busque os produtos ou serviços cadastrados pelo código ou nome.
         </p>
 
         {mensagem.texto && (
@@ -319,25 +358,26 @@ export default function BomTrailersTab() {
             </div>
           </div>
 
-          <h4 style={{ marginBottom: '12px', color: '#e5c158', fontSize: '15px' }}>Componentes da Estrutura</h4>
-          {produtosDisponiveis.length === 0 ? (
-            <p style={{ color: '#6b7280', fontSize: '14px' }}>Cadastre produtos no estoque antes de montar uma BOM.</p>
+          <h4 style={{ marginBottom: '12px', color: '#e5c158', fontSize: '15px' }}>Componentes e Serviços da Estrutura</h4>
+          {itensCatalogo.length === 0 ? (
+            <p style={{ color: '#6b7280', fontSize: '14px' }}>Cadastre produtos ou serviços antes de montar uma BOM.</p>
           ) : (
             <div>
               {componentesForm.map((comp, index) => {
                 const termo = comp.termoBusca.trim().toLowerCase();
-                const sugestoes = produtosDisponiveis.filter(
-                  (p) =>
-                    p.codigo?.toLowerCase().includes(termo) ||
-                    p.nome?.toLowerCase().includes(termo)
+                const sugestoes = itensCatalogo.filter(
+                  (item) =>
+                    item.codigo?.toLowerCase().includes(termo) ||
+                    item.nome?.toLowerCase().includes(termo) ||
+                    item.tipo?.toLowerCase().includes(termo)
                 );
 
                 return (
                   <div key={index} style={{ display: 'flex', gap: '12px', marginBottom: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 3, minWidth: '260px', position: 'relative' }}>
+                    <div style={{ flex: 3, minWidth: '280px', position: 'relative' }}>
                       <input
                         type="text"
-                        placeholder="Digite o código ou nome do produto..."
+                        placeholder="Digite o código ou nome do produto ou serviço..."
                         value={comp.termoBusca}
                         onChange={(e) => handleBuscaComponenteChange(index, e.target.value)}
                         onFocus={() => handleComponenteChange(index, 'dropdownAberto', true)}
@@ -348,7 +388,7 @@ export default function BomTrailersTab() {
                           width: '100%',
                           padding: '10px 12px',
                           borderRadius: '6px',
-                          border: comp.id_produto ? '1px solid #d4af37' : undefined,
+                          border: comp.id_item ? '1px solid #d4af37' : undefined,
                           fontSize: '14px',
                         }}
                       />
@@ -360,7 +400,7 @@ export default function BomTrailersTab() {
                             top: '100%',
                             left: 0,
                             right: 0,
-                            maxHeight: '220px',
+                            maxHeight: '240px',
                             overflowY: 'auto',
                             backgroundColor: '#111216',
                             border: '1px solid rgba(212, 175, 55, 0.45)',
@@ -372,37 +412,55 @@ export default function BomTrailersTab() {
                         >
                           {sugestoes.length === 0 ? (
                             <div style={{ padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
-                              Nenhum produto cadastrado encontrado para "{comp.termoBusca}".
+                              Nenhum produto ou serviço encontrado para "{comp.termoBusca}".
                             </div>
                           ) : (
-                            sugestoes.map((prod) => (
-                              <div
-                                key={prod.id}
-                                onMouseDown={() => handleSelecionarComponente(index, prod)}
-                                style={{
-                                  padding: '10px 12px',
-                                  cursor: 'pointer',
-                                  borderBottom: '1px solid rgba(212, 175, 55, 0.12)',
-                                  fontSize: '13px',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  color: '#f8fafc',
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e2028')}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                              >
-                                <span>
-                                  <strong style={{ color: '#e5c158', fontFamily: 'monospace' }}>
-                                    {prod.codigo}
-                                  </strong>{' '}
-                                  - {prod.nome} ({prod.unidade})
-                                </span>
-                                <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '8px' }}>
-                                  Saldo: {prod.quantidade} {prod.unidade}
-                                </span>
-                              </div>
-                            ))
+                            sugestoes.map((item) => {
+                              const isServ = item.tipo === 'SERVICO';
+                              return (
+                                <div
+                                  key={`${item.tipo}-${item.id}`}
+                                  onMouseDown={() => handleSelecionarComponente(index, item)}
+                                  style={{
+                                    padding: '10px 12px',
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid rgba(212, 175, 55, 0.12)',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    color: '#f8fafc',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e2028')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                >
+                                  <span>
+                                    <span
+                                      style={{
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: 'bold',
+                                        marginRight: '8px',
+                                        backgroundColor: isServ ? 'rgba(56, 189, 248, 0.2)' : 'rgba(212, 175, 55, 0.2)',
+                                        color: isServ ? '#7dd3fc' : '#e5c158',
+                                      }}
+                                    >
+                                      {isServ ? 'SERVIÇO' : 'PRODUTO'}
+                                    </span>
+                                    <strong style={{ color: '#e5c158', fontFamily: 'monospace' }}>
+                                      {item.codigo}
+                                    </strong>{' '}
+                                    - {item.nome} ({item.unidade})
+                                  </span>
+                                  <span style={{ color: '#9ca3af', fontSize: '12px', marginLeft: '8px' }}>
+                                    {isServ
+                                      ? `Valor: R$ ${item.valor.toFixed(2)}`
+                                      : `Saldo: ${item.saldo} ${item.unidade}`}
+                                  </span>
+                                </div>
+                              );
+                            })
                           )}
                         </div>
                       )}
@@ -438,7 +496,7 @@ export default function BomTrailersTab() {
                   onClick={handleAddComponente}
                   style={{ padding: '10px 16px', backgroundColor: '#1e2028', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '6px', cursor: 'pointer' }}
                 >
-                  + Adicionar Componente
+                  + Adicionar Item
                 </button>
                 <button
                   type="submit"
@@ -490,7 +548,8 @@ export default function BomTrailersTab() {
               const estaExpandida = bomExpandidaId === bom.id;
               const itens = bom.trailer_componentes || [];
               const custoTotalBom = itens.reduce((acc, item) => {
-                const val = Number(item.produtos?.valor_unitario || 0);
+                const isServ = Boolean(item.id_servico || item.servicos);
+                const val = Number(isServ ? item.servicos?.valor || 0 : item.produtos?.valor_unitario || 0);
                 return acc + val * Number(item.quantidade_necessaria || 0);
               }, 0);
 
@@ -505,7 +564,7 @@ export default function BomTrailersTab() {
                         </span>
                       </div>
                       <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>
-                        {itens.length} componente(s) | Custo Estimado: <strong style={{ color: '#e5c158' }}>R$ {custoTotalBom.toFixed(2)}</strong>
+                        {itens.length} item(ns) | Custo Estimado Total: <strong style={{ color: '#e5c158' }}>R$ {custoTotalBom.toFixed(2)}</strong>
                       </p>
                     </div>
 
@@ -548,33 +607,51 @@ export default function BomTrailersTab() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
-                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>SKU</th>
-                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Componente / Produto</th>
+                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Tipo</th>
+                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código</th>
+                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Item (Produto / Serviço)</th>
                               <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd Necessária</th>
-                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Saldo em Estoque</th>
+                              <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Disponibilidade</th>
                               <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Custo Unit.</th>
                               <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Subtotal</th>
                             </tr>
                           </thead>
                           <tbody>
                             {itens.map((item) => {
-                              const prod = item.produtos || {};
+                              const isServ = Boolean(item.id_servico || item.servicos);
+                              const dados = isServ ? item.servicos || {} : item.produtos || {};
                               const qtdNec = Number(item.quantidade_necessaria || 0);
-                              const saldoAtual = Number(prod.quantidade || 0);
-                              const faltaEstoque = saldoAtual < qtdNec;
-                              const valUnit = Number(prod.valor_unitario || 0);
+                              const valUnit = Number(isServ ? dados.valor || 0 : dados.valor_unitario || 0);
+                              const saldoAtual = isServ ? null : Number(dados.quantidade || 0);
+                              const faltaEstoque = !isServ && saldoAtual < qtdNec;
 
                               return (
                                 <tr key={item.id} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', fontSize: '14px' }}>
+                                  <td style={{ padding: '10px' }}>
+                                    <span
+                                      style={{
+                                        padding: '2px 7px',
+                                        borderRadius: '4px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        backgroundColor: isServ ? 'rgba(56, 189, 248, 0.15)' : 'rgba(212, 175, 55, 0.15)',
+                                        color: isServ ? '#7dd3fc' : '#e5c158',
+                                      }}
+                                    >
+                                      {isServ ? 'SERVIÇO' : 'PRODUTO'}
+                                    </span>
+                                  </td>
                                   <td style={{ padding: '10px', fontFamily: 'monospace', color: '#e5c158', fontWeight: 'bold' }}>
-                                    {prod.codigo}
+                                    {dados.codigo}
                                   </td>
-                                  <td style={{ padding: '10px', color: '#f8fafc' }}>{prod.nome}</td>
+                                  <td style={{ padding: '10px', color: '#f8fafc' }}>{dados.nome}</td>
                                   <td style={{ padding: '10px', fontWeight: 'bold', color: '#e2e8f0' }}>
-                                    {qtdNec} {prod.unidade}
+                                    {qtdNec} {dados.unidade}
                                   </td>
-                                  <td style={{ padding: '10px', fontWeight: 'bold', color: faltaEstoque ? '#f87171' : '#4ade80' }}>
-                                    {saldoAtual} {prod.unidade} {faltaEstoque && '(Insuficiente)'}
+                                  <td style={{ padding: '10px', fontWeight: 'bold', color: isServ ? '#7dd3fc' : faltaEstoque ? '#f87171' : '#4ade80' }}>
+                                    {isServ
+                                      ? 'Serviço sob demanda'
+                                      : `${saldoAtual} ${dados.unidade}${faltaEstoque ? ' (Insuficiente)' : ''}`}
                                   </td>
                                   <td style={{ padding: '10px', color: '#9ca3af' }}>R$ {valUnit.toFixed(2)}</td>
                                   <td style={{ padding: '10px', fontWeight: 'bold', color: '#e5c158' }}>
