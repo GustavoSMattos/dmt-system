@@ -9,7 +9,6 @@ export default function DesperdicioTab() {
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
 
-  // Estados do formulário
   const [idProduto, setIdProduto] = useState('');
   const [termoBusca, setTermoBusca] = useState('');
   const [dropdownAberto, setDropdownAberto] = useState(false);
@@ -48,7 +47,7 @@ export default function DesperdicioTab() {
 
   const handleBuscaChange = (texto) => {
     setTermoBusca(texto);
-    setIdProduto(''); // Exige clique em item válido da base
+    setIdProduto('');
     setDropdownAberto(true);
   };
 
@@ -125,22 +124,22 @@ export default function DesperdicioTab() {
   const getBadgeStyle = (tipoClassif) => {
     switch (tipoClassif) {
       case 'Acidente':
-        return { backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fcd34d' };
+        return { backgroundColor: 'rgba(212, 175, 55, 0.2)', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.5)' };
       case 'Defeito de fabrica':
-        return { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc' };
+        return { backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#7dd3fc', border: '1px solid rgba(56, 189, 248, 0.4)' };
       case 'Mau uso':
-        return { backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' };
+        return { backgroundColor: 'rgba(185, 28, 28, 0.2)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.5)' };
       default:
-        return { backgroundColor: '#f1f5f9', color: '#475569' };
+        return { backgroundColor: '#1e2028', color: '#9ca3af' };
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* FORMULÁRIO DE REGISTRO DE DESPERDÍCIO (APENAS BAIXA) */}
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h3 style={{ marginBottom: '8px', color: '#0f172a' }}>Registro de Desperdício (Baixa de Material)</h3>
-        <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '14px' }}>
+      {/* FORMULÁRIO DE REGISTRO DE DESPERDÍCIO */}
+      <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+        <h3 style={{ marginBottom: '8px', color: '#f8fafc', fontSize: '18px' }}>Registro de Desperdício (Baixa de Material)</h3>
+        <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '14px' }}>
           Registre perdas, avarias ou descartes de materiais. Esta operação realiza exclusivamente a baixa no saldo do estoque.
         </p>
 
@@ -150,8 +149,9 @@ export default function DesperdicioTab() {
               padding: '12px',
               borderRadius: '6px',
               marginBottom: '16px',
-              backgroundColor: mensagem.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-              color: mensagem.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+              backgroundColor: mensagem.tipo === 'sucesso' ? 'rgba(22, 163, 74, 0.15)' : 'rgba(185, 28, 28, 0.15)',
+              color: mensagem.tipo === 'sucesso' ? '#4ade80' : '#fca5a5',
+              border: `1px solid ${mensagem.tipo === 'sucesso' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
               fontSize: '14px',
             }}
           >
@@ -160,9 +160,8 @@ export default function DesperdicioTab() {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          {/* 1. Produto (atrelado aos produtos cadastrados na base) */}
           <div style={{ gridColumn: 'span 2', position: 'relative' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
               Produto *
             </label>
             <input
@@ -177,10 +176,8 @@ export default function DesperdicioTab() {
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '6px',
-                border: idProduto ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                backgroundColor: idProduto ? '#f0fdf4' : '#fff',
+                border: idProduto ? '1px solid #d4af37' : undefined,
                 fontSize: '14px',
-                outline: 'none',
               }}
             />
 
@@ -193,16 +190,16 @@ export default function DesperdicioTab() {
                   right: 0,
                   maxHeight: '220px',
                   overflowY: 'auto',
-                  backgroundColor: '#fff',
-                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#111216',
+                  border: '1px solid rgba(212, 175, 55, 0.45)',
                   borderRadius: '6px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
                   zIndex: 50,
                   marginTop: '4px',
                 }}
               >
                 {sugestoesProdutos.length === 0 ? (
-                  <div style={{ padding: '10px 12px', fontSize: '13px', color: '#94a3b8' }}>
+                  <div style={{ padding: '10px 12px', fontSize: '13px', color: '#6b7280' }}>
                     Nenhum produto cadastrado encontrado.
                   </div>
                 ) : (
@@ -213,19 +210,20 @@ export default function DesperdicioTab() {
                       style={{
                         padding: '10px 12px',
                         cursor: 'pointer',
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: '1px solid rgba(212, 175, 55, 0.12)',
                         fontSize: '13px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
+                        color: '#f8fafc',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#fff')}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e2028')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <span>
-                        <strong style={{ color: '#0284c7', fontFamily: 'monospace' }}>{prod.codigo}</strong> - {prod.nome}
+                        <strong style={{ color: '#e5c158', fontFamily: 'monospace' }}>{prod.codigo}</strong> - {prod.nome}
                       </span>
-                      <span style={{ color: '#64748b', fontSize: '12px' }}>
+                      <span style={{ color: '#9ca3af', fontSize: '12px' }}>
                         Saldo: {prod.quantidade} {prod.unidade}
                       </span>
                     </div>
@@ -235,9 +233,8 @@ export default function DesperdicioTab() {
             )}
           </div>
 
-          {/* 2. Quantidade */}
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
               Quantidade (Baixa) *
             </label>
             <input
@@ -248,20 +245,19 @@ export default function DesperdicioTab() {
               value={quantidade}
               onChange={(e) => setQuantidade(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', fontSize: '14px' }}
             />
           </div>
 
-          {/* 3. Classificação */}
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
               Classificação *
             </label>
             <select
               value={classificacao}
               onChange={(e) => setClassificacao(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', fontSize: '14px' }}
             >
               <option value="">-- Selecione a classificação --</option>
               <option value="Acidente">Acidente</option>
@@ -270,9 +266,8 @@ export default function DesperdicioTab() {
             </select>
           </div>
 
-          {/* 4. Colaborador Responsável */}
           <div style={{ gridColumn: 'span 2' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
               Colaborador Responsável *
             </label>
             <input
@@ -281,17 +276,16 @@ export default function DesperdicioTab() {
               value={colaboradorResponsavel}
               onChange={(e) => setColaboradorResponsavel(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', fontSize: '14px' }}
             />
           </div>
 
-          {/* 5. Descrição do ocorrido (até 1000 caracteres) */}
           <div style={{ gridColumn: 'span 2' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <label style={{ fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+              <label style={{ fontSize: '13px', color: '#d1d5db' }}>
                 Descrição do Ocorrido *
               </label>
-              <span style={{ fontSize: '12px', color: descricao.length >= 950 ? '#dc2626' : '#64748b' }}>
+              <span style={{ fontSize: '12px', color: descricao.length >= 950 ? '#f87171' : '#9ca3af' }}>
                 {descricao.length} / 1000 caracteres
               </span>
             </div>
@@ -302,7 +296,7 @@ export default function DesperdicioTab() {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               required
-              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', resize: 'vertical' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }}
             />
           </div>
 
@@ -312,9 +306,9 @@ export default function DesperdicioTab() {
               disabled={salvando}
               style={{
                 padding: '12px 24px',
-                backgroundColor: salvando ? '#991b1b' : '#dc2626',
-                color: '#fff',
-                border: 'none',
+                backgroundColor: salvando ? '#7f1d1d' : '#991b1b',
+                color: '#fef2f2',
+                border: '1px solid #ef4444',
                 borderRadius: '6px',
                 fontWeight: 'bold',
                 cursor: salvando ? 'not-allowed' : 'pointer',
@@ -327,28 +321,28 @@ export default function DesperdicioTab() {
       </div>
 
       {/* HISTÓRICO DE DESPERDÍCIOS REGISTRADOS */}
-      <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <h3 style={{ marginBottom: '16px', color: '#0f172a' }}>Histórico de Desperdícios</h3>
+      <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+        <h3 style={{ marginBottom: '16px', color: '#f8fafc', fontSize: '18px' }}>Histórico de Desperdícios</h3>
 
         {loadingDados ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>Carregando histórico...</div>
+          <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>Carregando histórico...</div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '13px' }}>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Data / Hora</th>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Produto</th>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Qtd Baixada</th>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Classificação</th>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Colaborador</th>
-                  <th style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>Descrição do Ocorrido</th>
+                <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Data / Hora</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Produto</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd Baixada</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Classificação</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Colaborador</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Descrição do Ocorrido</th>
                 </tr>
               </thead>
               <tbody>
                 {historico.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
                       Nenhum registro de desperdício encontrado.
                     </td>
                   </tr>
@@ -357,17 +351,17 @@ export default function DesperdicioTab() {
                     const prod = reg.produtos || {};
                     const badge = getBadgeStyle(reg.classificacao);
                     return (
-                      <tr key={reg.id} style={{ borderBottom: '1px solid #f1f5f9', fontSize: '14px' }}>
-                        <td style={{ padding: '12px', color: '#64748b', whiteSpace: 'nowrap', fontSize: '13px' }}>
+                      <tr key={reg.id} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', fontSize: '14px' }}>
+                        <td style={{ padding: '12px', color: '#9ca3af', whiteSpace: 'nowrap', fontSize: '13px' }}>
                           {new Date(reg.criado_em).toLocaleString('pt-BR')}
                         </td>
                         <td style={{ padding: '12px' }}>
-                          <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0284c7' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#e5c158' }}>
                             {prod.codigo}
                           </span>{' '}
-                          - <span style={{ color: '#1e293b', fontWeight: '500' }}>{prod.nome}</span>
+                          - <span style={{ color: '#f8fafc', fontWeight: '500' }}>{prod.nome}</span>
                         </td>
-                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#dc2626', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#f87171', whiteSpace: 'nowrap' }}>
                           -{reg.quantidade} {prod.unidade}
                         </td>
                         <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
@@ -383,10 +377,10 @@ export default function DesperdicioTab() {
                             {reg.classificacao}
                           </span>
                         </td>
-                        <td style={{ padding: '12px', color: '#334155', fontWeight: '500' }}>
+                        <td style={{ padding: '12px', color: '#e2e8f0', fontWeight: '500' }}>
                           {reg.colaborador_responsavel}
                         </td>
-                        <td style={{ padding: '12px', color: '#475569', fontSize: '13px', maxWidth: '320px' }}>
+                        <td style={{ padding: '12px', color: '#9ca3af', fontSize: '13px', maxWidth: '320px' }}>
                           {reg.descricao}
                         </td>
                       </tr>

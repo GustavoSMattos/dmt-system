@@ -44,9 +44,9 @@ export default function AlterarSenhaTab() {
   };
 
   return (
-    <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', border: '1px solid #e2e8f0', maxWidth: '500px' }}>
-      <h3 style={{ marginBottom: '8px', color: '#0f172a' }}>Alterar Minha Senha</h3>
-      <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '14px' }}>
+    <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)', maxWidth: '500px' }}>
+      <h3 style={{ marginBottom: '8px', color: '#f8fafc', fontSize: '18px' }}>Alterar Minha Senha</h3>
+      <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '14px' }}>
         Informe sua senha atual e defina uma nova senha de acesso ao sistema.
       </p>
 
@@ -56,8 +56,9 @@ export default function AlterarSenhaTab() {
             padding: '12px',
             borderRadius: '6px',
             marginBottom: '16px',
-            backgroundColor: mensagem.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-            color: mensagem.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+            backgroundColor: mensagem.tipo === 'sucesso' ? 'rgba(22, 163, 74, 0.15)' : 'rgba(185, 28, 28, 0.15)',
+            color: mensagem.tipo === 'sucesso' ? '#4ade80' : '#fca5a5',
+            border: `1px solid ${mensagem.tipo === 'sucesso' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
             fontSize: '14px',
           }}
         >
@@ -67,7 +68,7 @@ export default function AlterarSenhaTab() {
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
             Senha Atual *
           </label>
           <input
@@ -76,12 +77,12 @@ export default function AlterarSenhaTab() {
             onChange={(e) => setSenhaAtual(e.target.value)}
             required
             placeholder="Digite sua senha atual"
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
             Nova Senha * (mín. 6 caracteres)
           </label>
           <input
@@ -91,12 +92,12 @@ export default function AlterarSenhaTab() {
             required
             minLength={6}
             placeholder="Digite a nova senha"
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>
             Confirmar Nova Senha *
           </label>
           <input
@@ -106,7 +107,7 @@ export default function AlterarSenhaTab() {
             required
             minLength={6}
             placeholder="Repita a nova senha"
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+            style={{ width: '100%', padding: '10px', borderRadius: '6px' }}
           />
         </div>
 
@@ -116,8 +117,8 @@ export default function AlterarSenhaTab() {
           style={{
             marginTop: '8px',
             padding: '12px 24px',
-            backgroundColor: loading ? '#0369a1' : '#0284c7',
-            color: '#fff',
+            background: 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)',
+            color: '#0c0d10',
             border: 'none',
             borderRadius: '6px',
             fontWeight: 'bold',

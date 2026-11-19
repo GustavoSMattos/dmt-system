@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 export default function LeituraNFTab() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [etapa, setEtapa] = useState('upload'); // 'upload' | 'preview' | 'concluido'
+  const [etapa, setEtapa] = useState('upload');
   const [fornecedor, setFornecedor] = useState(null);
   const [produtos, setProdutos] = useState([]);
   const [codigosExistentes, setCodigosExistentes] = useState(new Set());
@@ -14,7 +14,6 @@ export default function LeituraNFTab() {
   const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
   const [resultadoFinal, setResultadoFinal] = useState(null);
 
-  // Carrega os SKUs existentes na base para revalidar dinamicamente caso o usuário edite o código na tabela
   const carregarCodigosBase = async () => {
     try {
       const res = await fetch('/api/produtos');
@@ -22,16 +21,13 @@ export default function LeituraNFTab() {
       if (res.ok && Array.isArray(data)) {
         setCodigosExistentes(new Set(data.map((p) => String(p.codigo || '').trim().toLowerCase())));
       }
-    } catch {
-      // Silencioso; o preview já faz a checagem inicial no servidor
-    }
+    } catch {}
   };
 
   useEffect(() => {
     carregarCodigosBase();
   }, []);
 
-  // 1. Faz o upload e busca a prévia sem salvar no banco
   const handleGerarPreview = async (e) => {
     e.preventDefault();
     if (!file) return setMensagem({ tipo: 'erro', texto: 'Selecione um arquivo XML.' });
@@ -65,7 +61,6 @@ export default function LeituraNFTab() {
     }
   };
 
-  // 2. Altera um campo específico de um produto na prévia e reavalia se é novo na base
   const handleProdutoChange = (index, field, value) => {
     const novosProdutos = [...produtos];
     novosProdutos[index][field] = value;
@@ -78,18 +73,15 @@ export default function LeituraNFTab() {
     setProdutos(novosProdutos);
   };
 
-  // 3. Remove um produto da prévia
   const handleRemoverProduto = (index) => {
     const novosProdutos = produtos.filter((_, i) => i !== index);
     setProdutos(novosProdutos);
   };
 
-  // Identifica os produtos novos presentes na lista atual da prévia
   const produtosNovos = produtos.filter((p) => p.is_novo);
   const exigeConfirmacao = produtosNovos.length > 0;
   const confirmacaoValida = !exigeConfirmacao || textoConfirmacao.trim() === 'Confirmo';
 
-  // 4. Confirma e envia a lista editada final para o banco de dados
   const handleConfirmarImportacao = async () => {
     if (produtos.length === 0) {
       return setMensagem({ tipo: 'erro', texto: 'Todos os itens foram removidos. Adicione ou envie outro XML.' });
@@ -151,9 +143,9 @@ export default function LeituraNFTab() {
   };
 
   return (
-    <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-      <h3 style={{ marginBottom: '8px', color: '#0f172a' }}>Entrada por NF-e (XML) com Pré-visualização</h3>
-      <p style={{ color: '#64748b', marginBottom: '20px', fontSize: '14px' }}>
+    <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+      <h3 style={{ marginBottom: '8px', color: '#f8fafc', fontSize: '18px' }}>Entrada por NF-e (XML) com Pré-visualização</h3>
+      <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '14px' }}>
         Envie o arquivo XML da NF-e para conferir, editar ou remover produtos antes de dar entrada no estoque.
       </p>
 
@@ -163,8 +155,9 @@ export default function LeituraNFTab() {
             padding: '12px',
             borderRadius: '6px',
             marginBottom: '16px',
-            backgroundColor: mensagem.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-            color: mensagem.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+            backgroundColor: mensagem.tipo === 'sucesso' ? 'rgba(22, 163, 74, 0.15)' : 'rgba(185, 28, 28, 0.15)',
+            color: mensagem.tipo === 'sucesso' ? '#4ade80' : '#fca5a5',
+            border: `1px solid ${mensagem.tipo === 'sucesso' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
             fontSize: '14px',
           }}
         >
@@ -175,7 +168,7 @@ export default function LeituraNFTab() {
       {/* ETAPA 1: UPLOAD DO XML */}
       {etapa === 'upload' && (
         <form onSubmit={handleGerarPreview}>
-          <div style={{ border: '2px dashed #cbd5e1', padding: '32px', borderRadius: '8px', textAlign: 'center', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
+          <div style={{ border: '2px dashed rgba(212, 175, 55, 0.4)', padding: '32px', borderRadius: '8px', textAlign: 'center', backgroundColor: '#111216', marginBottom: '16px' }}>
             <input
               type="file"
               accept=".xml"
@@ -183,7 +176,7 @@ export default function LeituraNFTab() {
               id="xml-upload"
               style={{ display: 'none' }}
             />
-            <label htmlFor="xml-upload" style={{ cursor: 'pointer', color: '#0284c7', fontWeight: 'bold' }}>
+            <label htmlFor="xml-upload" style={{ cursor: 'pointer', color: '#e5c158', fontWeight: 'bold' }}>
               {file ? `Arquivo selecionado: ${file.name}` : 'Clique aqui para escolher o arquivo XML'}
             </label>
           </div>
@@ -193,8 +186,8 @@ export default function LeituraNFTab() {
             disabled={loading || !file}
             style={{
               padding: '10px 24px',
-              backgroundColor: loading || !file ? '#94a3b8' : '#0284c7',
-              color: '#fff',
+              background: loading || !file ? '#272a34' : 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)',
+              color: loading || !file ? '#6b7280' : '#0c0d10',
               border: 'none',
               borderRadius: '6px',
               fontWeight: 'bold',
@@ -210,43 +203,43 @@ export default function LeituraNFTab() {
       {etapa === 'preview' && (
         <div>
           {fornecedor && (
-            <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-              <h4 style={{ margin: 0, color: '#0f172a' }}>Fornecedor Identificado: {fornecedor.nome_empresa}</h4>
-              <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
+            <div style={{ backgroundColor: '#111216', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+              <h4 style={{ margin: 0, color: '#e5c158' }}>Fornecedor Identificado: {fornecedor.nome_empresa}</h4>
+              <p style={{ margin: '4px 0 0 0', color: '#9ca3af', fontSize: '14px' }}>
                 CNPJ: {fornecedor.cnpj} | Telefone: {fornecedor.telefone || '-'}
               </p>
             </div>
           )}
 
-          <h4 style={{ marginBottom: '12px', color: '#0f172a' }}>Produtos da NF-e ({produtos.length} item(ns))</h4>
-          <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '16px' }}>
+          <h4 style={{ marginBottom: '8px', color: '#f8fafc' }}>Produtos da NF-e ({produtos.length} item(ns))</h4>
+          <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '16px' }}>
             Altere os dados diretamente nos campos da tabela ou clique no botão vermelho para excluir um item.
           </p>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '820px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '13px' }}>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1', width: '120px' }}>Situação</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Código / SKU *</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Nome do Produto *</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Categoria</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Unid.</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1', width: '90px' }}>Qtd</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1', width: '110px' }}>Valor Unit.</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1', width: '60px', textAlign: 'center' }}>Ação</th>
+                <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', width: '125px' }}>Situação</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código / SKU *</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Nome do Produto *</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Categoria</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Unid.</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', width: '90px' }}>Qtd</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', width: '110px' }}>Valor Unit.</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', width: '60px', textAlign: 'center' }}>Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {produtos.map((prod, index) => (
-                  <tr key={index} style={{ backgroundColor: prod.is_novo ? '#fffbeb' : '#fff' }}>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <tr key={index} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', backgroundColor: prod.is_novo ? 'rgba(212, 175, 55, 0.05)' : 'transparent' }}>
+                    <td style={{ padding: '6px', textAlign: 'center' }}>
                       {prod.is_novo ? (
                         <span
                           style={{
-                            backgroundColor: '#fef3c7',
-                            color: '#b45309',
-                            border: '1px solid #fcd34d',
+                            backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                            color: '#e5c158',
+                            border: '1px solid rgba(212, 175, 55, 0.5)',
                             padding: '3px 8px',
                             borderRadius: '4px',
                             fontSize: '11px',
@@ -259,8 +252,9 @@ export default function LeituraNFTab() {
                       ) : (
                         <span
                           style={{
-                            backgroundColor: '#dcfce7',
-                            color: '#15803d',
+                            backgroundColor: 'rgba(22, 163, 74, 0.15)',
+                            color: '#4ade80',
+                            border: '1px solid rgba(74, 222, 128, 0.4)',
                             padding: '3px 8px',
                             borderRadius: '4px',
                             fontSize: '11px',
@@ -272,63 +266,63 @@ export default function LeituraNFTab() {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="text"
                         value={prod.codigo}
                         onChange={(e) => handleProdutoChange(index, 'codigo', e.target.value)}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '100%', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="text"
                         value={prod.nome}
                         onChange={(e) => handleProdutoChange(index, 'nome', e.target.value)}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '100%', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="text"
                         value={prod.categoria}
                         onChange={(e) => handleProdutoChange(index, 'categoria', e.target.value)}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '100%', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="text"
                         value={prod.unidade}
                         onChange={(e) => handleProdutoChange(index, 'unidade', e.target.value)}
-                        style={{ width: '50px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '50px', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="number"
                         step="0.01"
                         min="0.01"
                         value={prod.quantidade}
                         onChange={(e) => handleProdutoChange(index, 'quantidade', e.target.value)}
-                        style={{ width: '80px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '80px', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '6px' }}>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         value={prod.valor_unitario}
                         onChange={(e) => handleProdutoChange(index, 'valor_unitario', e.target.value)}
-                        style={{ width: '100px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                        style={{ width: '100px', padding: '6px', borderRadius: '4px', fontSize: '13px' }}
                       />
                     </td>
-                    <td style={{ padding: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <td style={{ padding: '6px', textAlign: 'center' }}>
                       <button
                         type="button"
                         onClick={() => handleRemoverProduto(index)}
-                        style={{ padding: '6px 10px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ padding: '6px 10px', backgroundColor: '#991b1b', color: '#fff', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Excluir produto da lista"
                       >
                         X
@@ -340,31 +334,30 @@ export default function LeituraNFTab() {
             </table>
           </div>
 
-          {/* ALERTA DE NOVOS PRODUTOS EXIGINDO DIGITAÇÃO DE "Confirmo" */}
           {exigeConfirmacao && (
             <div
               style={{
                 marginTop: '20px',
                 padding: '16px',
-                backgroundColor: '#fffbeb',
-                border: '1px solid #f59e0b',
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                border: '1px solid #d4af37',
                 borderRadius: '8px',
               }}
             >
-              <h4 style={{ margin: '0 0 8px 0', color: '#b45309', fontSize: '15px' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '15px' }}>
                 Atenção: {produtosNovos.length} produto(s) novo(s) identificado(s) na base de dados
               </h4>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#78350f' }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#d1d5db' }}>
                 Os seguintes produtos ainda não estão cadastrados e serão criados automaticamente no estoque:
               </p>
-              <ul style={{ margin: '0 0 14px 20px', padding: 0, color: '#92400e', fontSize: '14px', fontWeight: '600' }}>
+              <ul style={{ margin: '0 0 14px 20px', padding: 0, color: '#f8fafc', fontSize: '14px', fontWeight: '600' }}>
                 {produtosNovos.map((p, i) => (
                   <li key={i} style={{ marginBottom: '4px' }}>
-                    {p.nome || '(Produto sem nome)'} <span style={{ fontWeight: 'normal', fontSize: '13px' }}>(SKU: {p.codigo})</span>
+                    {p.nome || '(Produto sem nome)'} <span style={{ fontWeight: 'normal', fontSize: '13px', color: '#9ca3af' }}>(SKU: {p.codigo})</span>
                   </li>
                 ))}
               </ul>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#78350f', marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#e5c158', marginBottom: '6px' }}>
                 Para autorizar o cadastro destes produtos na base, digite <span style={{ textDecoration: 'underline' }}>Confirmo</span> abaixo:
               </label>
               <input
@@ -377,9 +370,7 @@ export default function LeituraNFTab() {
                   maxWidth: '280px',
                   padding: '10px',
                   borderRadius: '6px',
-                  border: '1px solid #f59e0b',
                   fontSize: '14px',
-                  backgroundColor: '#fff',
                 }}
               />
             </div>
@@ -389,7 +380,7 @@ export default function LeituraNFTab() {
             <button
               type="button"
               onClick={handleReiniciar}
-              style={{ padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
+              style={{ padding: '10px 16px', backgroundColor: '#1e2028', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', cursor: 'pointer' }}
             >
               Cancelar / Outro XML
             </button>
@@ -399,8 +390,8 @@ export default function LeituraNFTab() {
               disabled={loading || produtos.length === 0 || !confirmacaoValida}
               style={{
                 padding: '10px 24px',
-                backgroundColor: loading || produtos.length === 0 || !confirmacaoValida ? '#86efac' : '#16a34a',
-                color: '#fff',
+                background: loading || produtos.length === 0 || !confirmacaoValida ? '#272a34' : 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)',
+                color: loading || produtos.length === 0 || !confirmacaoValida ? '#6b7280' : '#0c0d10',
                 border: 'none',
                 borderRadius: '6px',
                 fontWeight: 'bold',
@@ -416,7 +407,7 @@ export default function LeituraNFTab() {
       {/* ETAPA 3: CONCLUÍDO */}
       {etapa === 'concluido' && (
         <div>
-          <div style={{ padding: '16px', backgroundColor: '#dcfce7', color: '#15803d', borderRadius: '6px', marginBottom: '16px' }}>
+          <div style={{ padding: '16px', backgroundColor: 'rgba(22, 163, 74, 0.15)', color: '#4ade80', border: '1px solid rgba(74, 222, 128, 0.4)', borderRadius: '6px', marginBottom: '16px' }}>
             <h4 style={{ margin: 0 }}>Importação concluída com sucesso!</h4>
             <p style={{ margin: '4px 0 0 0', fontSize: '14px' }}>
               {resultadoFinal?.message || 'Os itens foram adicionados/atualizados no banco de dados.'}
@@ -426,20 +417,20 @@ export default function LeituraNFTab() {
           {resultadoFinal?.itens && (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginBottom: '20px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '13px' }}>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Código / SKU</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Produto</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Qtd</th>
-                  <th style={{ padding: '10px', border: '1px solid #cbd5e1' }}>Status</th>
+                <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código / SKU</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Produto</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd</th>
+                  <th style={{ padding: '10px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {resultadoFinal.itens.map((item, idx) => (
-                  <tr key={idx}>
-                    <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>{item.codigo}</td>
-                    <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{item.nome}</td>
-                    <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{item.quantidade}</td>
-                    <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>{item.status}</td>
+                  <tr key={idx} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', color: '#e2e8f0' }}>
+                    <td style={{ padding: '10px', fontFamily: 'monospace', color: '#e5c158' }}>{item.codigo}</td>
+                    <td style={{ padding: '10px' }}>{item.nome}</td>
+                    <td style={{ padding: '10px' }}>{item.quantidade}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#4ade80' }}>{item.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -449,7 +440,7 @@ export default function LeituraNFTab() {
           <button
             type="button"
             onClick={handleReiniciar}
-            style={{ padding: '10px 24px', backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ padding: '10px 24px', background: 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)', color: '#0c0d10', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
           >
             Importar Nova NF-e
           </button>

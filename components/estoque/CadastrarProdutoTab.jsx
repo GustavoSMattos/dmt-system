@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 
 export default function CadastrarProdutoTab() {
-  const [modo, setModo] = useState('manual'); // 'manual' | 'planilha'
+  const [modo, setModo] = useState('manual');
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
 
-  // Estado do Cadastro Manual
   const [form, setForm] = useState({
     codigo: '',
     nome: '',
@@ -22,7 +21,6 @@ export default function CadastrarProdutoTab() {
     id_fornecedor: '',
   });
 
-  // Estado da Importação por Planilha
   const [itensPlanilha, setItensPlanilha] = useState([]);
   const [nomeArquivo, setNomeArquivo] = useState('');
   const [resultadoImportacao, setResultadoImportacao] = useState(null);
@@ -72,7 +70,6 @@ export default function CadastrarProdutoTab() {
     }
   };
 
-  // Baixar arquivo modelo .xlsx
   const handleBaixarModelo = () => {
     const dadosModelo = [
       {
@@ -94,7 +91,6 @@ export default function CadastrarProdutoTab() {
     XLSX.writeFile(wb, 'modelo_cadastro_produtos_dmt.xlsx');
   };
 
-  // Ler arquivo .xlsx ou .csv selecionado
   const handleArquivoPlanilha = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -117,7 +113,6 @@ export default function CadastrarProdutoTab() {
           return;
         }
 
-        // Normaliza nomes das colunas (ignora maiúsculas/espaços)
         const normalizados = linhas
           .map((row) => {
             const obj = {};
@@ -186,11 +181,11 @@ export default function CadastrarProdutoTab() {
   };
 
   return (
-    <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+    <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
       {/* Alternador de Modo */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-        <h3 style={{ margin: 0, color: '#0f172a' }}>Cadastro de Produtos</h3>
-        <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+        <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '18px' }}>Cadastro de Produtos</h3>
+        <div style={{ display: 'flex', gap: '8px', backgroundColor: '#111216', padding: '4px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.25)' }}>
           <button
             type="button"
             onClick={() => { setModo('manual'); setMensagem({ tipo: '', texto: '' }); }}
@@ -200,8 +195,9 @@ export default function CadastrarProdutoTab() {
               border: 'none',
               cursor: 'pointer',
               fontWeight: '600',
-              backgroundColor: modo === 'manual' ? '#0284c7' : 'transparent',
-              color: modo === 'manual' ? '#fff' : '#475569',
+              fontSize: '13px',
+              backgroundColor: modo === 'manual' ? '#d4af37' : 'transparent',
+              color: modo === 'manual' ? '#0c0d10' : '#9ca3af',
             }}
           >
             Cadastro Manual
@@ -215,8 +211,9 @@ export default function CadastrarProdutoTab() {
               border: 'none',
               cursor: 'pointer',
               fontWeight: '600',
-              backgroundColor: modo === 'planilha' ? '#0284c7' : 'transparent',
-              color: modo === 'planilha' ? '#fff' : '#475569',
+              fontSize: '13px',
+              backgroundColor: modo === 'planilha' ? '#d4af37' : 'transparent',
+              color: modo === 'planilha' ? '#0c0d10' : '#9ca3af',
             }}
           >
             Importar Planilha (.xlsx / .csv)
@@ -229,8 +226,9 @@ export default function CadastrarProdutoTab() {
           padding: '12px',
           borderRadius: '6px',
           marginBottom: '16px',
-          backgroundColor: mensagem.tipo === 'sucesso' ? '#dcfce7' : '#fee2e2',
-          color: mensagem.tipo === 'sucesso' ? '#15803d' : '#b91c1c',
+          backgroundColor: mensagem.tipo === 'sucesso' ? 'rgba(22, 163, 74, 0.15)' : 'rgba(185, 28, 28, 0.15)',
+          color: mensagem.tipo === 'sucesso' ? '#4ade80' : '#fca5a5',
+          border: `1px solid ${mensagem.tipo === 'sucesso' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
           fontSize: '14px',
         }}>
           {mensagem.texto}
@@ -241,20 +239,20 @@ export default function CadastrarProdutoTab() {
       {modo === 'manual' && (
         <form onSubmit={handleSalvarManual} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Código / SKU *</label>
-            <input type="text" name="codigo" required value={form.codigo} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Código / SKU *</label>
+            <input type="text" name="codigo" required value={form.codigo} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Nome do Produto *</label>
-            <input type="text" name="nome" required value={form.nome} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Nome do Produto *</label>
+            <input type="text" name="nome" required value={form.nome} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Categoria *</label>
-            <input type="text" name="categoria" required value={form.categoria} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Categoria *</label>
+            <input type="text" name="categoria" required value={form.categoria} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Unidade *</label>
-            <select name="unidade" value={form.unidade} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Unidade *</label>
+            <select name="unidade" value={form.unidade} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }}>
               <option value="UN">UN (Unidade)</option>
               <option value="KG">KG (Quilograma)</option>
               <option value="MT">MT (Metro)</option>
@@ -263,24 +261,24 @@ export default function CadastrarProdutoTab() {
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Quantidade Inicial</label>
-            <input type="number" step="0.01" min="0" name="quantidade" value={form.quantidade} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Quantidade Inicial</label>
+            <input type="number" step="0.01" min="0" name="quantidade" value={form.quantidade} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Valor Unitário (R$)</label>
-            <input type="number" step="0.01" min="0" name="valor_unitario" value={form.valor_unitario} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Valor Unitário (R$)</label>
+            <input type="number" step="0.01" min="0" name="valor_unitario" value={form.valor_unitario} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Estoque Mínimo</label>
-            <input type="number" step="0.01" min="0" name="estoque_minimo" value={form.estoque_minimo} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Estoque Mínimo</label>
+            <input type="number" step="0.01" min="0" name="estoque_minimo" value={form.estoque_minimo} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Lead Time (dias)</label>
-            <input type="number" min="0" name="leadtime" value={form.leadtime} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Lead Time (dias)</label>
+            <input type="number" min="0" name="leadtime" value={form.leadtime} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }} />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>Fornecedor</label>
-            <select name="id_fornecedor" value={form.id_fornecedor} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: '#d1d5db' }}>Fornecedor</label>
+            <select name="id_fornecedor" value={form.id_fornecedor} onChange={handleChangeManual} style={{ width: '100%', padding: '10px', borderRadius: '6px' }}>
               <option value="">-- Selecione (Opcional) --</option>
               {fornecedores.map((f) => (
                 <option key={f.id} value={f.id}>{f.nome_empresa}</option>
@@ -288,7 +286,7 @@ export default function CadastrarProdutoTab() {
             </select>
           </div>
           <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
-            <button type="submit" disabled={loading} style={{ padding: '12px 24px', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button type="submit" disabled={loading} style={{ padding: '12px 24px', background: 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)', color: '#0c0d10', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
               {loading ? 'Salvando...' : 'Salvar Produto'}
             </button>
           </div>
@@ -298,23 +296,23 @@ export default function CadastrarProdutoTab() {
       {/* MODO 2: IMPORTAÇÃO POR PLANILHA (.XLSX / .CSV) */}
       {modo === 'planilha' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#111216', padding: '16px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <strong style={{ color: '#0f172a', fontSize: '14px' }}>Colunas esperadas:</strong>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#475569' }}>
+              <strong style={{ color: '#e5c158', fontSize: '14px' }}>Colunas esperadas:</strong>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>
                 <code>codigo</code>, <code>nome</code>, <code>categoria</code>, <code>unidade</code>, <code>quantidade</code>, <code>valor_unitario</code>, <code>estoque_minimo</code>, <code>leadtime</code>, <code>cnpj_fornecedor</code>
               </p>
             </div>
             <button
               type="button"
               onClick={handleBaixarModelo}
-              style={{ padding: '8px 14px', backgroundColor: '#fff', color: '#0284c7', border: '1px solid #0284c7', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+              style={{ padding: '8px 14px', backgroundColor: '#1e2028', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.5)', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
             >
               Baixar Planilha Modelo (.xlsx)
             </button>
           </div>
 
-          <div style={{ border: '2px dashed #cbd5e1', padding: '28px', borderRadius: '8px', textAlign: 'center', backgroundColor: '#f8fafc', marginBottom: '20px' }}>
+          <div style={{ border: '2px dashed rgba(212, 175, 55, 0.4)', padding: '28px', borderRadius: '8px', textAlign: 'center', backgroundColor: '#111216', marginBottom: '20px' }}>
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -322,46 +320,45 @@ export default function CadastrarProdutoTab() {
               id="planilha-upload"
               style={{ display: 'none' }}
             />
-            <label htmlFor="planilha-upload" style={{ cursor: 'pointer', color: '#0284c7', fontWeight: 'bold' }}>
+            <label htmlFor="planilha-upload" style={{ cursor: 'pointer', color: '#e5c158', fontWeight: 'bold' }}>
               {nomeArquivo ? `Arquivo carregado: ${nomeArquivo}` : 'Clique para selecionar um arquivo .xlsx ou .csv'}
             </label>
           </div>
 
-          {/* Pré-visualização antes de gravar */}
           {itensPlanilha.length > 0 && (
             <div>
-              <h4 style={{ marginBottom: '12px', color: '#0f172a' }}>
+              <h4 style={{ marginBottom: '12px', color: '#f8fafc' }}>
                 Pré-visualização ({itensPlanilha.length} item(ns) prontos para importar)
               </h4>
               <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#f1f5f9', color: '#334155' }}>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Código</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Nome</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Categoria</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Unid.</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Qtd</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Valor Unit.</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Est. Mín.</th>
-                      <th style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>Remover</th>
+                    <tr style={{ backgroundColor: '#111216', color: '#d4af37' }}>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Nome</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Categoria</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Unid.</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Valor Unit.</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Est. Mín.</th>
+                      <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', textAlign: 'center' }}>Remover</th>
                     </tr>
                   </thead>
                   <tbody>
                     {itensPlanilha.map((item, idx) => (
-                      <tr key={idx}>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.codigo}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.nome}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.categoria}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.unidade}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.quantidade}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>R$ {item.valor_unitario.toFixed(2)}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{item.estoque_minimo}</td>
-                        <td style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', color: '#e2e8f0' }}>
+                        <td style={{ padding: '8px', color: '#e5c158', fontFamily: 'monospace' }}>{item.codigo}</td>
+                        <td style={{ padding: '8px' }}>{item.nome}</td>
+                        <td style={{ padding: '8px' }}>{item.categoria}</td>
+                        <td style={{ padding: '8px' }}>{item.unidade}</td>
+                        <td style={{ padding: '8px' }}>{item.quantidade}</td>
+                        <td style={{ padding: '8px' }}>R$ {item.valor_unitario.toFixed(2)}</td>
+                        <td style={{ padding: '8px' }}>{item.estoque_minimo}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
                           <button
                             type="button"
                             onClick={() => handleRemoverLinha(idx)}
-                            style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                            style={{ padding: '4px 8px', backgroundColor: '#991b1b', color: '#fff', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                           >
                             X
                           </button>
@@ -376,33 +373,32 @@ export default function CadastrarProdutoTab() {
                 type="button"
                 onClick={handleConfirmarPlanilha}
                 disabled={loading}
-                style={{ padding: '12px 24px', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ padding: '12px 24px', background: 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)', color: '#0c0d10', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
                 {loading ? 'Importando...' : `Confirmar e Gravar ${itensPlanilha.length} Produto(s)`}
               </button>
             </div>
           )}
 
-          {/* Resumo pós-importação */}
           {resultadoImportacao?.itens && (
             <div style={{ marginTop: '20px' }}>
-              <h4 style={{ color: '#15803d', marginBottom: '8px' }}>Resumo da Importação:</h4>
+              <h4 style={{ color: '#4ade80', marginBottom: '8px' }}>Resumo da Importação:</h4>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9' }}>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Código</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Produto</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Qtd</th>
-                    <th style={{ padding: '8px', border: '1px solid #cbd5e1' }}>Status</th>
+                  <tr style={{ backgroundColor: '#111216', color: '#d4af37' }}>
+                    <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Produto</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd</th>
+                    <th style={{ padding: '8px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {resultadoImportacao.itens.map((it, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.codigo}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.nome}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{it.quantidade}</td>
-                      <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>{it.status}</td>
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)', color: '#e2e8f0' }}>
+                      <td style={{ padding: '8px', color: '#e5c158', fontFamily: 'monospace' }}>{it.codigo}</td>
+                      <td style={{ padding: '8px' }}>{it.nome}</td>
+                      <td style={{ padding: '8px' }}>{it.quantidade}</td>
+                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#4ade80' }}>{it.status}</td>
                     </tr>
                   ))}
                 </tbody>
