@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [erro, setErro] = useState('');
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErro('');
@@ -23,9 +23,12 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Falha ao autenticar.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Credenciais inválidas.');
+      }
 
       router.push('/dashboard');
+      router.refresh();
     } catch (err) {
       setErro(err.message);
     } finally {
@@ -34,49 +37,161 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
-      <form onSubmit={handleLogin} style={{ backgroundColor: '#1e293b', padding: '32px', borderRadius: '12px', width: '380px', color: '#fff', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}>
-        <h2 style={{ marginBottom: '8px', color: '#38bdf8', fontSize: '24px' }}>dmt-system</h2>
-        <p style={{ marginBottom: '24px', color: '#94a3b8', fontSize: '14px' }}>Informe suas credenciais para acessar</p>
-        
+    <div
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#0c0d10',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        color: '#f8fafc',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          backgroundColor: '#15171c',
+          border: '1px solid rgba(212, 175, 55, 0.45)',
+          borderRadius: '14px',
+          padding: '36px 32px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+        }}
+      >
+        {/* LOGOTIPO CENTRALIZADO (SEM CAMPO DE TEXTO) */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingBottom: '24px',
+            marginBottom: '24px',
+            borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
+          }}
+        >
+          <img
+            src="/logo.png"
+            alt="Logotipo"
+            style={{
+              maxWidth: '190px',
+              maxHeight: '64px',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </div>
+
+        <p
+          style={{
+            textAlign: 'center',
+            fontSize: '13px',
+            color: '#9ca3af',
+            marginBottom: '24px',
+            letterSpacing: '0.3px',
+          }}
+        >
+          Acesse o Painel de Controle de Estoque
+        </p>
+
         {erro && (
-          <div style={{ backgroundColor: '#7f1d1d', color: '#fca5a5', padding: '10px', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' }}>
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '18px',
+              backgroundColor: 'rgba(185, 28, 28, 0.15)',
+              color: '#fca5a5',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              fontSize: '13px',
+              textAlign: 'center',
+            }}
+          >
             {erro}
           </div>
         )}
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#cbd5e1' }}>E-mail</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="seu.email@dmtrailers.com.br"
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', outline: 'none' }}
-          />
-        </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontSize: '13px',
+                color: '#d1d5db',
+              }}
+            >
+              E-mail
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu.email@dmtrailers.com.br"
+              required
+              autoComplete="email"
+              style={{
+                width: '100%',
+                padding: '11px 14px',
+                borderRadius: '8px',
+                fontSize: '14px',
+              }}
+            />
+          </div>
 
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#cbd5e1' }}>Senha</label>
-          <input
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            placeholder="••••••••"
-            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', outline: 'none' }}
-          />
-        </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontSize: '13px',
+                color: '#d1d5db',
+              }}
+            >
+              Senha
+            </label>
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              style={{
+                width: '100%',
+                padding: '11px 14px',
+                borderRadius: '8px',
+                fontSize: '14px',
+              }}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', padding: '12px', backgroundColor: loading ? '#0369a1' : '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}
-        >
-          {loading ? 'Entrando...' : 'Acessar Sistema'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: '8px',
+              width: '100%',
+              padding: '12px',
+              background: loading
+                ? '#272a34'
+                : 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)',
+              color: loading ? '#6b7280' : '#0c0d10',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '700',
+              letterSpacing: '0.3px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            {loading ? 'Autenticando...' : 'Entrar no Sistema'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
