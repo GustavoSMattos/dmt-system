@@ -124,15 +124,15 @@ export async function PUT(req) {
   }
 }
 
-// DELETE: Exclui um serviço
+// DELETE: Exclui um serviço (Admin e Operador)
 export async function DELETE(req) {
   try {
     const token = req.cookies.get('session_token')?.value;
     if (!token) return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
 
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.perfil !== 'admin') {
-      return NextResponse.json({ error: 'Apenas Administradores podem excluir serviços.' }, { status: 403 });
+    if (!['admin', 'operador'].includes(user.perfil)) {
+      return NextResponse.json({ error: 'Perfil sem permissão para excluir serviços.' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

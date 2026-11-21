@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EstoqueTab from '@/components/estoque/EstoqueTab';
 import CadastrarProdutoTab from '@/components/estoque/CadastrarProdutoTab';
 import ServicosTab from '@/components/servicos/ServicosTab';
@@ -14,8 +14,18 @@ import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
 
 export default function DashboardLayout({ children }) {
   const [abaAtiva, setAbaAtiva] = useState('dashboard');
+  const [perfilUsuario, setPerfilUsuario] = useState(null);
 
-  const menuItens = [
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.perfil) setPerfilUsuario(data.perfil);
+      })
+      .catch(() => {});
+  }, []);
+
+  const todosMenuItens = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'produtos', label: 'Estoque de Produtos' },
     { id: 'novo_produto', label: '+ Cadastrar Produto' },
@@ -24,9 +34,14 @@ export default function DashboardLayout({ children }) {
     { id: 'lote', label: 'Entrada/Saída em Lote' },
     { id: 'xml', label: 'Entrada por NF-e' },
     { id: 'bom', label: 'Estruturas BOM' },
-    { id: 'logs', label: 'Log de Atividades' },
+    { id: 'logs', label: 'Log de Atividades', apenasAdmin: true },
     { id: 'desperdicio', label: 'Desperdício' },
   ];
+
+  // Oculta a aba Log de Atividades para operador (e enquanto o perfil não for confirmado como admin)
+  const menuItens = todosMenuItens.filter(
+    (item) => !item.apenasAdmin || perfilUsuario === 'admin'
+  );
 
   const renderConteudoAba = () => {
     try {
@@ -50,7 +65,7 @@ export default function DashboardLayout({ children }) {
         case 'bom':
           return <BomTrailersTab />;
         case 'logs':
-          return <LogsTab />;
+          return perfilUsuario === 'admin' ? <LogsTab /> : children;
         case 'senha':
           return <AlterarSenhaTab />;
         default:
