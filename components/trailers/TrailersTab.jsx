@@ -52,20 +52,28 @@ export default function TrailersTab() {
     setLoading(true);
     try {
       const [resGroups, resBoms, resSnaps] = await Promise.all([
-        fetch('/api/trailer-groups'),
-        fetch('/api/trailers'),
-        fetch('/api/trailer-groups/snapshots'),
+        fetch('/api/trailer-groups', { cache: 'no-store' }),
+        fetch('/api/trailers', { cache: 'no-store' }),
+        fetch('/api/trailer-groups/snapshots', { cache: 'no-store' }),
       ]);
 
       const dataGroups = await resGroups.json();
       const dataBoms = await resBoms.json();
       const dataSnaps = await resSnaps.json();
 
+      if (!resBoms.ok) {
+        setMensagem({
+          tipo: 'erro',
+          texto: `Erro ao puxar Estruturas BOM: ${dataBoms.error || resBoms.statusText}`,
+        });
+      } else {
+        setBomsDisponiveis(Array.isArray(dataBoms) ? dataBoms : []);
+      }
+
       if (resGroups.ok) setTrailerGroups(Array.isArray(dataGroups) ? dataGroups : []);
-      if (resBoms.ok) setBomsDisponiveis(Array.isArray(dataBoms) ? dataBoms : []);
       if (resSnaps.ok) setSnapshots(Array.isArray(dataSnaps) ? dataSnaps : []);
-    } catch {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao carregar dados de Trailers e BOMs.' });
+    } catch (err) {
+      setMensagem({ tipo: 'erro', texto: `Falha de rede ao carregar BOMs: ${err.message}` });
     } finally {
       setLoading(false);
     }
@@ -222,7 +230,6 @@ export default function TrailersTab() {
     }
   };
 
-  // Salvar Snapshot do Trailer
   const handleConfirmarSnapshot = async (e) => {
     e.preventDefault();
     if (!trailerParaSnapshot) return;
@@ -516,7 +523,9 @@ export default function TrailersTab() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-            <h4 style={{ margin: 0, color: '#e5c158', fontSize: '15px' }}>Estruturas BOM que compõem este Trailer</h4>
+            <h4 style={{ margin: 0, color: '#e5c158', fontSize: '15px' }}>
+              Estruturas BOM que compõem este Trailer ({bomsDisponiveis.length} disponíveis)
+            </h4>
             <span style={{ fontSize: '13px', color: '#9ca3af' }}>
               Custo Estimado na Montagem:{' '}
               <strong style={{ color: '#4ade80', fontSize: '15px' }}>
@@ -525,9 +534,11 @@ export default function TrailersTab() {
             </span>
           </div>
 
-          {bomsDisponiveis.length === 0 ? (
+          {loading ? (
+            <p style={{ color: '#9ca3af', fontSize: '14px' }}>Carregando Estruturas BOM...</p>
+          ) : bomsDisponiveis.length === 0 ? (
             <p style={{ color: '#6b7280', fontSize: '14px' }}>
-              Cadastre Estruturas BOM na aba "Estruturas BOM" antes de montar um trailer.
+              Nenhuma Estrutura BOM encontrada. Cadastre Estruturas BOM na aba "Estruturas BOM" antes de montar um trailer.
             </p>
           ) : (
             <div>
@@ -544,12 +555,12 @@ export default function TrailersTab() {
                     <div style={{ flex: 3, minWidth: '280px', position: 'relative' }}>
                       <input
                         type="text"
-                        placeholder="Busque uma Estrutura BOM pelo nome ou categoria..."
+                        placeholder="Clique aqui ou digite o nome/categoria da Estrutura BOM..."
                         value={itemForm.termoBusca}
                         onChange={(e) => handleBuscaBomChange(index, e.target.value)}
                         onFocus={() => handleBomFieldChange(index, 'dropdownAberto', true)}
                         onBlur={() => {
-                          setTimeout(() => handleBomFieldChange(index, 'dropdownAberto', false), 180);
+                          setTimeout(() => handleBomFieldChange(index, 'dropdownAberto', false), 200);
                         }}
                         style={{
                           width: '100%',
@@ -913,77 +924,54 @@ export default function TrailersTab() {
                                   const snapAberto = snapshotExpandidoId === snap.id;
 
                                   return (
-                                    <>
-                                      <tr key={snap.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <td style={{ padding: '8px', color: '#d1d5db', whiteSpace: 'nowrap' }}>
-                                          {new Date(snap.criado_em).toLocaleString('pt-BR')}
-                                        </td>
-                                        <td style={{ padding: '8px', color: '#f8fafc' }}>
-                                          {snap.observacao || <span style={{ color: '#6b7280' }}>Registro periódico</span>}
-                                        </td>
-                                        <td style={{ padding: '8px', color: '#e5c158' }}>
-                                          R$ {Number(snap.custo_produtos || 0).toFixed(2)}
-                                        </td>
-                                        <td style={{ padding: '8px', color: '#7dd3fc' }}>
-                                          R$ {Number(snap.custo_servicos || 0).toFixed(2)}
-                                        </td>
-                                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#4ade80' }}>
-                                          R$ {totalAtual.toFixed(2)}
-                                        </td>
-                                        <td style={{ padding: '8px', fontSize: '12px', fontWeight: '600' }}>
-                                          {diff === null ? (
-                                            <span style={{ color: '#6b7280' }}>Base inicial</span>
-                                          ) : diff === 0 ? (
-                                            <span style={{ color: '#9ca3af' }}>Sem alteração (0%)</span>
-                                          ) : diff > 0 ? (
-                                            <span style={{ color: '#f87171' }}>
-                                              +R$ {diff.toFixed(2)} ({diffPerc ? `+${diffPerc}%` : ''})
-                                            </span>
-                                          ) : (
-                                            <span style={{ color: '#4ade80' }}>
-                                              -R$ {Math.abs(diff).toFixed(2)} ({diffPerc ? `${diffPerc}%` : ''})
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td style={{ padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                          <button
-                                            type="button"
-                                            onClick={() => setSnapshotExpandidoId(snapAberto ? null : snap.id)}
-                                            style={{ padding: '4px 8px', marginRight: '6px', backgroundColor: '#1e2028', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                                          >
-                                            {snapAberto ? 'Ocultar' : 'Categorias'}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleExcluirSnapshot(snap.id)}
-                                            style={{ padding: '4px 8px', backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                                          >
-                                            X
-                                          </button>
-                                        </td>
-                                      </tr>
-
-                                      {snapAberto && Array.isArray(snap.detalhes_categorias) && (
-                                        <tr style={{ backgroundColor: '#0c0d10' }}>
-                                          <td colSpan="7" style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>
-                                              Composição congelada por categoria em {new Date(snap.criado_em).toLocaleDateString('pt-BR')}:
-                                            </div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                                              {snap.detalhes_categorias.map((c, i) => (
-                                                <div key={i} style={{ padding: '8px 12px', backgroundColor: '#15171c', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', fontSize: '12px' }}>
-                                                  <strong style={{ color: '#e5c158' }}>{c.categoria}:</strong>{' '}
-                                                  <span style={{ color: '#4ade80', fontWeight: 'bold' }}>R$ {Number(c.custo_total).toFixed(2)}</span>{' '}
-                                                  <span style={{ color: '#9ca3af' }}>
-                                                    (Prod: R$ {Number(c.custo_produtos).toFixed(2)} | Serv: R$ {Number(c.custo_servicos).toFixed(2)})
-                                                  </span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </>
+                                    <tr key={snap.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                      <td style={{ padding: '8px', color: '#d1d5db', whiteSpace: 'nowrap' }}>
+                                        {new Date(snap.criado_em).toLocaleString('pt-BR')}
+                                      </td>
+                                      <td style={{ padding: '8px', color: '#f8fafc' }}>
+                                        {snap.observacao || <span style={{ color: '#6b7280' }}>Registro periódico</span>}
+                                      </td>
+                                      <td style={{ padding: '8px', color: '#e5c158' }}>
+                                        R$ {Number(snap.custo_produtos || 0).toFixed(2)}
+                                      </td>
+                                      <td style={{ padding: '8px', color: '#7dd3fc' }}>
+                                        R$ {Number(snap.custo_servicos || 0).toFixed(2)}
+                                      </td>
+                                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#4ade80' }}>
+                                        R$ {totalAtual.toFixed(2)}
+                                      </td>
+                                      <td style={{ padding: '8px', fontSize: '12px', fontWeight: '600' }}>
+                                        {diff === null ? (
+                                          <span style={{ color: '#6b7280' }}>Base inicial</span>
+                                        ) : diff === 0 ? (
+                                          <span style={{ color: '#9ca3af' }}>Sem alteração (0%)</span>
+                                        ) : diff > 0 ? (
+                                          <span style={{ color: '#f87171' }}>
+                                            +R$ {diff.toFixed(2)} ({diffPerc ? `+${diffPerc}%` : ''})
+                                          </span>
+                                        ) : (
+                                          <span style={{ color: '#4ade80' }}>
+                                            -R$ {Math.abs(diff).toFixed(2)} ({diffPerc ? `${diffPerc}%` : ''})
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td style={{ padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSnapshotExpandidoId(snapAberto ? null : snap.id)}
+                                          style={{ padding: '4px 8px', marginRight: '6px', backgroundColor: '#1e2028', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                        >
+                                          {snapAberto ? 'Ocultar' : 'Categorias'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleExcluirSnapshot(snap.id)}
+                                          style={{ padding: '4px 8px', backgroundColor: 'transparent', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                                        >
+                                          X
+                                        </button>
+                                      </td>
+                                    </tr>
                                   );
                                 })}
                               </tbody>
