@@ -9,6 +9,7 @@ import MovimentacaoLoteTab from '@/components/estoque/MovimentacaoLoteTab';
 import LeituraNFTab from '@/components/estoque/LeituraNFTab';
 import DesperdicioTab from '@/components/estoque/DesperdicioTab';
 import BomTrailersTab from '@/components/bom/BomTrailersTab';
+import TrailersTab from '@/components/trailers/TrailersTab';
 import LogsTab from '@/components/logs/LogsTab';
 import AlterarSenhaTab from '@/components/perfil/AlterarSenhaTab';
 
@@ -34,11 +35,11 @@ export default function DashboardLayout({ children }) {
     { id: 'lote', label: 'Entrada/Saída em Lote' },
     { id: 'xml', label: 'Entrada por NF-e' },
     { id: 'bom', label: 'Estruturas BOM' },
+    { id: 'trailers', label: 'Trailers' },
     { id: 'logs', label: 'Log de Atividades', apenasAdmin: true },
     { id: 'desperdicio', label: 'Desperdício' },
   ];
 
-  // Oculta a aba Log de Atividades para operador (e enquanto o perfil não for confirmado como admin)
   const menuItens = todosMenuItens.filter(
     (item) => !item.apenasAdmin || perfilUsuario === 'admin'
   );
@@ -64,6 +65,8 @@ export default function DashboardLayout({ children }) {
           return <DesperdicioTab />;
         case 'bom':
           return <BomTrailersTab />;
+        case 'trailers':
+          return <TrailersTab />;
         case 'logs':
           return perfilUsuario === 'admin' ? <LogsTab /> : children;
         case 'senha':

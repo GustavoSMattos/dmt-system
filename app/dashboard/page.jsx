@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 export default function DashboardPage() {
   const [produtos, setProdutos] = useState([]);
   const [fornecedoresCount, setFornecedoresCount] = useState(0);
+  const [perfilUsuario, setPerfilUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
 
@@ -12,9 +13,10 @@ export default function DashboardPage() {
     setLoading(true);
     setErro('');
     try {
-      const [resProd, resForn] = await Promise.all([
+      const [resProd, resForn, resMe] = await Promise.all([
         fetch('/api/produtos'),
         fetch('/api/fornecedores'),
+        fetch('/api/auth/me'),
       ]);
 
       const dataProd = await resProd.json();
@@ -24,6 +26,11 @@ export default function DashboardPage() {
       if (resForn.ok) {
         const dataForn = await resForn.json();
         setFornecedoresCount(Array.isArray(dataForn) ? dataForn.length : 0);
+      }
+
+      if (resMe.ok) {
+        const dataMe = await resMe.json();
+        setPerfilUsuario(dataMe?.perfil || null);
       }
     } catch (err) {
       setErro(err.message);
@@ -116,19 +123,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={cardStyle}>
-          <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400' }}>
-            Valor Total em Estoque:
-          </span>
-          <div style={{ fontSize: '28px', fontWeight: '600', color: '#e5c158', marginTop: '8px' }}>
-            {loading
-              ? '...'
-              : `R$ ${valorTotalEstoque.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`}
+        {/* EXIBIDO APENAS PARA ADMIN */}
+        {perfilUsuario === 'admin' && (
+          <div style={cardStyle}>
+            <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '400' }}>
+              Valor Total em Estoque:
+            </span>
+            <div style={{ fontSize: '28px', fontWeight: '600', color: '#e5c158', marginTop: '8px' }}>
+              {loading
+                ? '...'
+                : `R$ ${valorTotalEstoque.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* PAINÉIS LADO A LADO: URGÊNCIA E ATENÇÃO */}
