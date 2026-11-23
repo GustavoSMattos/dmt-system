@@ -4,447 +4,343 @@ import { useState, useEffect } from 'react';
 
 export default function EstoqueTab() {
   const [produtos, setProdutos] = useState([]);
+  const [perfilUsuario, setPerfilUsuario] = useState(null);
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
-  const [ordenacao, setOrdenacao] = useState('az');
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState('');
+  const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
 
-  // Estados para Modal de Edição
+  // Modal de Edição
   const [produtoEditando, setProdutoEditando] = useState(null);
-  const [formEdit, setFormEdit] = useState({
-    nome: '',
-    categoria: '',
-    estoque_minimo: '0',
-    valor_unitario: '0',
-    leadtime: '0',
-  });
-  const [confirmacaoEdicaoNome, setConfirmacaoEdicaoNome] = useState('');
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
-  // Estados para Modal de Exclusão com Validação de Nome
-  const [produtoExcluindo, setProdutoExcluindo] = useState(null);
-  const [confirmacaoExclusaoNome, setConfirmacaoExclusaoNome] = useState('');
-  const [processandoAcao, setProcessandoAcao] = useState(false);
-
-  const carregarProdutos = async () => {
+  const carregarDados = async () => {
     setLoading(true);
-    setErro('');
     try {
-      const res = await fetch('/api/produtos');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao carregar lista de produtos.');
-      setProdutos(Array.isArray(data) ? data : []);
+      const [resProd, resMe] = await Promise.all([
+        fetch('/api/produtos', { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' }),
+      ]);
+
+      const dataProd = await resProd.json();
+      if (!resProd.ok) throw new Error(dataProd.error || 'Erro ao carregar produtos.');
+      setProdutos(Array.isArray(dataProd) ? dataProd : []);
+
+      if (resMe.ok) {
+        const dataMe = await resMe.json();
+        setPerfilUsuario(String(dataMe?.perfil || '').toLowerCase());
+      }
     } catch (err) {
-      setErro(err.message);
+      setMensagem({ tipo: 'erro', texto: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarProdutos();
+    carregarDados();
   }, []);
 
-  const categoriasUnicas = Array.from(new Set(produtos.map((p) => p.categoria).filter(Boolean))).sort();
+  const podeEditarOuExcluir = ['admin', 'operador'].includes(perfilUsuario);
+  const isAdmin = perfilUsuario === 'admin';
 
-  const produtosFiltrados = produtos.filter((p) => {
-    const bateTexto =
-      p.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-      p.codigo?.toLowerCase().includes(busca.toLowerCase());
-    const bateCategoria = categoriaFiltro ? p.categoria === categoriaFiltro : true;
-    return bateTexto && bateCategoria;
-  });
+  const handleExcluir = async (prod) => {
+    if (!confirm(`Deseja realmente excluir o produto "${prod.codigo} - ${prod.nome}"?`)) return;
 
-  const produtosOrdenados = [...produtosFiltrados].sort((a, b) => {
-    switch (ordenacao) {
-      case 'az':
-        return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' });
-      case 'za':
-        return (b.nome || '').localeCompare(a.nome || '', 'pt-BR', { sensitivity: 'base' });
-      case 'maior_qtd':
-        return Number(b.quantidade || 0) - Number(a.quantidade || 0);
-      case 'menor_qtd':
-        return Number(a.quantidade || 0) - Number(b.quantidade || 0);
-      case 'maior_leadtime':
-        return Number(b.leadtime || 0) - Number(a.leadtime || 0);
-      case 'menor_leadtime':
-        return Number(a.leadtime || 0) - Number(b.leadtime || 0);
-      default:
-        return 0;
+    setMensagem({ tipo: '', texto: '' });
+    try {
+      const res = await fetch(`/api/produtos?id=${prod.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir produto.');
+
+      setMensagem({ tipo: 'sucesso', texto: `Produto "${prod.nome}" excluído com sucesso.` });
+      setProdutos((prev) => prev.filter((item) => item.id !== prod.id));
+    } catch (err) {
+      setMensagem({ tipo: 'erro', texto: err.message });
     }
-  });
-
-  const handleAbrirEdicao = (prod) => {
-    setProdutoEditando(prod);
-    setFormEdit({
-      nome: prod.nome || '',
-      categoria: prod.categoria || '',
-      estoque_minimo: prod.estoque_minimo ?? '0',
-      valor_unitario: prod.valor_unitario ?? '0',
-      leadtime: prod.leadtime ?? '0',
-    });
-    setConfirmacaoEdicaoNome('');
   };
 
   const handleSalvarEdicao = async (e) => {
     e.preventDefault();
-    if (!produtoEditando || confirmacaoEdicaoNome !== produtoEditando.nome) return;
+    if (!produtoEditando) return;
 
-    setProcessandoAcao(true);
+    setSalvandoEdicao(true);
+    setMensagem({ tipo: '', texto: '' });
+
     try {
       const res = await fetch('/api/produtos', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: produtoEditando.id,
-          ...formEdit,
-        }),
+        body: JSON.stringify(produtoEditando),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao atualizar produto.');
 
+      setMensagem({ tipo: 'sucesso', texto: `Produto "${data.nome}" atualizado com sucesso.` });
       setProdutoEditando(null);
-      setConfirmacaoEdicaoNome('');
-      carregarProdutos();
+      carregarDados();
     } catch (err) {
-      alert(err.message);
+      setMensagem({ tipo: 'erro', texto: err.message });
     } finally {
-      setProcessandoAcao(false);
+      setSalvandoEdicao(false);
     }
   };
 
-  const handleAbrirExclusao = (prod) => {
-    setProdutoExcluindo(prod);
-    setConfirmacaoExclusaoNome('');
-  };
+  const categorias = Array.from(new Set(produtos.map((p) => p.categoria).filter(Boolean))).sort();
 
-  const handleConfirmarExclusao = async () => {
-    if (!produtoExcluindo || confirmacaoExclusaoNome !== produtoExcluindo.nome) return;
-
-    setProcessandoAcao(true);
-    try {
-      const res = await fetch(`/api/produtos?id=${produtoExcluindo.id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erro ao excluir produto.');
-
-      setProdutoExcluindo(null);
-      setConfirmacaoExclusaoNome('');
-      carregarProdutos();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setProcessandoAcao(false);
-    }
-  };
+  const produtosFiltrados = produtos.filter((p) => {
+    const bateBusca =
+      p.codigo?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.nome?.toLowerCase().includes(busca.toLowerCase());
+    const bateCategoria = categoriaFiltro ? p.categoria === categoriaFiltro : true;
+    return bateBusca && bateCategoria;
+  });
 
   return (
-    <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ color: '#f8fafc', margin: 0, fontSize: '18px' }}>Produtos no Estoque</h3>
-        <button
-          onClick={carregarProdutos}
-          style={{ padding: '8px 16px', backgroundColor: '#1e2028', color: '#e5c158', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
-        >
-          Atualizar Lista
-        </button>
-      </div>
-
-      {/* Barra de Filtros e Ordenação */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Buscar por nome ou código (SKU)..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          style={{ flex: 2, minWidth: '220px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px' }}
-        />
-
-        <select
-          value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-          style={{ flex: 1, minWidth: '180px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px' }}
-        >
-          <option value="">Todas as Categorias</option>
-          {categoriasUnicas.map((cat, idx) => (
-            <option key={idx} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={ordenacao}
-          onChange={(e) => setOrdenacao(e.target.value)}
-          style={{ flex: 1, minWidth: '210px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px' }}
-        >
-          <option value="az">Ordenar: De A a Z</option>
-          <option value="za">Ordenar: De Z a A</option>
-          <option value="maior_qtd">Ordenar: Maior quantidade em estoque</option>
-          <option value="menor_qtd">Ordenar: Menor quantidade em estoque</option>
-          <option value="maior_leadtime">Ordenar: Maior Leadtime</option>
-          <option value="menor_leadtime">Ordenar: Menor Leadtime</option>
-        </select>
-      </div>
-
-      {erro && (
-        <div style={{ padding: '12px', backgroundColor: 'rgba(185, 28, 28, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '6px', marginBottom: '16px', fontSize: '14px' }}>
-          {erro}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ backgroundColor: '#15171c', padding: '24px', borderRadius: '12px', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <h3 style={{ margin: 0, color: '#f8fafc', fontSize: '18px' }}>
+            Estoque de Produtos ({produtosFiltrados.length})
+          </h3>
+          <button
+            onClick={carregarDados}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#1e2028',
+              color: '#e5c158',
+              border: '1px solid rgba(212, 175, 55, 0.45)',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+            }}
+          >
+            Atualizar Lista
+          </button>
         </div>
-      )}
 
-      {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>Carregando estoque...</div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '820px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Nome do Produto</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Categoria</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Qtd Atual</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Estoque Mín.</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Lead Time</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Valor Unit.</th>
-                <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', textAlign: 'center' }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtosOrdenados.length === 0 ? (
-                <tr>
-                  <td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
-                    Nenhum produto encontrado.
-                  </td>
+        {mensagem.texto && (
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              backgroundColor: mensagem.tipo === 'sucesso' ? 'rgba(22, 163, 74, 0.15)' : 'rgba(185, 28, 28, 0.15)',
+              color: mensagem.tipo === 'sucesso' ? '#4ade80' : '#fca5a5',
+              border: `1px solid ${mensagem.tipo === 'sucesso' ? 'rgba(74, 222, 128, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+              fontSize: '14px',
+            }}
+          >
+            {mensagem.texto}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder="Buscar por código (SKU) ou nome do produto..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            style={{ flex: 2, minWidth: '240px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px' }}
+          />
+          <select
+            value={categoriaFiltro}
+            onChange={(e) => setCategoriaFiltro(e.target.value)}
+            style={{ flex: 1, minWidth: '180px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px' }}
+          >
+            <option value="">Todas as Categorias</option>
+            {categorias.map((cat, idx) => (
+              <option key={idx} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#9ca3af' }}>Carregando estoque...</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '760px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#111216', color: '#d4af37', fontSize: '13px' }}>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Código</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Produto</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Categoria</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Saldo</th>
+                  <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Mínimo</th>
+                  {isAdmin && (
+                    <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}>Valor Unit.</th>
+                  )}
+                  {podeEditarOuExcluir && (
+                    <th style={{ padding: '12px', borderBottom: '1px solid rgba(212, 175, 55, 0.35)', textAlign: 'center' }}>
+                      Ações
+                    </th>
+                  )}
                 </tr>
-              ) : (
-                produtosOrdenados.map((item) => {
-                  const abaixoDoMinimo = Number(item.quantidade) <= Number(item.estoque_minimo || 0);
-                  const temLeadtime = item.leadtime !== null && item.leadtime !== undefined && Number(item.leadtime) > 0;
-
-                  return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)' }}>
-                      <td style={{ padding: '12px', fontSize: '14px', fontFamily: 'monospace', fontWeight: 'bold', color: '#e5c158' }}>
-                        {item.codigo}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500', color: '#f8fafc' }}>
-                        {item.nome}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '13px', color: '#d1d5db' }}>
-                        <span style={{ backgroundColor: '#1e2028', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
-                          {item.categoria}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: 'bold', color: abaixoDoMinimo ? '#f87171' : '#4ade80' }}>
-                        {item.quantidade} {item.unidade}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px', color: '#9ca3af' }}>
-                        {item.estoque_minimo || 0} {item.unidade}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        {temLeadtime ? (
-                          <span style={{ color: '#e2e8f0', fontWeight: '500' }}>{item.leadtime} dia(s)</span>
-                        ) : (
-                          <span
-                            style={{
-                              backgroundColor: 'rgba(212, 175, 55, 0.15)',
-                              color: '#e5c158',
-                              border: '1px solid rgba(212, 175, 55, 0.5)',
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            N/D
-                          </span>
+              </thead>
+              <tbody>
+                {produtosFiltrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 7 : 6} style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                      Nenhum produto encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  produtosFiltrados.map((item) => {
+                    const saldoBaixo = Number(item.estoque_minimo || 0) > 0 && Number(item.quantidade || 0) <= Number(item.estoque_minimo || 0);
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid rgba(212, 175, 55, 0.12)' }}>
+                        <td style={{ padding: '12px', fontSize: '14px', fontFamily: 'monospace', fontWeight: 'bold', color: '#e5c158' }}>
+                          {item.codigo}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: '#f8fafc', fontWeight: '500' }}>
+                          {item.nome}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '13px', color: '#9ca3af' }}>
+                          {item.categoria || '-'}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '14px', fontWeight: 'bold', color: saldoBaixo ? '#f87171' : '#4ade80' }}>
+                          {item.quantidade} {item.unidade}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '13px', color: '#9ca3af' }}>
+                          {item.estoque_minimo || 0} {item.unidade}
+                        </td>
+                        {isAdmin && (
+                          <td style={{ padding: '12px', fontSize: '14px', color: '#e5c158' }}>
+                            R$ {Number(item.valor_unitario || 0).toFixed(2)}
+                          </td>
                         )}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px', color: '#f8fafc', fontWeight: '500' }}>
-                        R$ {Number(item.valor_unitario || 0).toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <button
-                          onClick={() => handleAbrirEdicao(item)}
-                          style={{ padding: '6px 12px', marginRight: '6px', backgroundColor: '#d4af37', color: '#0c0d10', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleAbrirExclusao(item)}
-                          style={{ padding: '6px 12px', backgroundColor: '#991b1b', color: '#fef2f2', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
-                        >
-                          Excluir
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        {podeEditarOuExcluir && (
+                          <td style={{ padding: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setProdutoEditando({ ...item })}
+                              style={{ padding: '6px 12px', marginRight: '6px', backgroundColor: '#d4af37', color: '#0c0d10', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleExcluir(item)}
+                              style={{ padding: '6px 12px', backgroundColor: '#991b1b', color: '#fef2f2', border: '1px solid #ef4444', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                            >
+                              Excluir
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {/* MODAL DE EDIÇÃO COM CONFIRMAÇÃO POR NOME */}
+      {/* MODAL DE EDIÇÃO DE PRODUTO */}
       {produtoEditando && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ backgroundColor: '#15171c', border: '1px solid rgba(212, 175, 55, 0.5)', padding: '24px', borderRadius: '10px', width: '100%', maxWidth: '460px', maxHeight: '90vh', overflowY: 'auto', color: '#f8fafc' }}>
-            <h4 style={{ margin: '0 0 16px 0', color: '#e5c158' }}>Editar Produto ({produtoEditando.codigo})</h4>
-            <form onSubmit={handleSalvarEdicao}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#d1d5db', marginBottom: '4px' }}>Nome do Produto</label>
+          <div style={{ backgroundColor: '#15171c', border: '1px solid rgba(212, 175, 55, 0.5)', padding: '24px', borderRadius: '10px', width: '100%', maxWidth: '500px', color: '#f8fafc' }}>
+            <h4 style={{ margin: '0 0 16px 0', color: '#e5c158' }}>Editar Produto</h4>
+            <form onSubmit={handleSalvarEdicao} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Código *</label>
                 <input
                   type="text"
-                  value={formEdit.nome}
-                  onChange={(e) => setFormEdit({ ...formEdit, nome: e.target.value })}
+                  value={produtoEditando.codigo}
+                  onChange={(e) => setProdutoEditando({ ...produtoEditando, codigo: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#d1d5db', marginBottom: '4px' }}>Categoria</label>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Nome *</label>
                 <input
                   type="text"
-                  value={formEdit.categoria}
-                  onChange={(e) => setFormEdit({ ...formEdit, categoria: e.target.value })}
+                  value={produtoEditando.nome}
+                  onChange={(e) => setProdutoEditando({ ...produtoEditando, nome: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#d1d5db', marginBottom: '4px' }}>Preço Unitário (R$)</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Categoria</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formEdit.valor_unitario}
-                    onChange={(e) => setFormEdit({ ...formEdit, valor_unitario: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
+                    type="text"
+                    value={produtoEditando.categoria || ''}
+                    onChange={(e) => setProdutoEditando({ ...produtoEditando, categoria: e.target.value })}
+                    style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
                   />
                 </div>
-
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#d1d5db', marginBottom: '4px' }}>Estoque Mínimo</label>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Unidade</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formEdit.estoque_minimo}
-                    onChange={(e) => setFormEdit({ ...formEdit, estoque_minimo: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
+                    type="text"
+                    value={produtoEditando.unidade || 'UN'}
+                    onChange={(e) => setProdutoEditando({ ...produtoEditando, unidade: e.target.value })}
+                    style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
                   />
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', color: '#d1d5db', marginBottom: '4px' }}>Lead Time (dias)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formEdit.leadtime}
-                  onChange={(e) => setFormEdit({ ...formEdit, leadtime: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px' }}
-                />
-              </div>
-
-              <div style={{ backgroundColor: '#111216', padding: '12px', borderRadius: '6px', border: '1px solid rgba(212, 175, 55, 0.3)', marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>
-                  Para confirmar a edição, digite o nome atual do produto:
-                </label>
-                <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#e5c158', backgroundColor: '#0e1014', padding: '6px 8px', borderRadius: '4px', border: '1px solid rgba(212, 175, 55, 0.25)', marginBottom: '8px', userSelect: 'all' }}>
-                  {produtoEditando.nome}
+              <div style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1fr 1fr 1fr' : '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Saldo Atual</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={produtoEditando.quantidade}
+                    onChange={(e) => setProdutoEditando({ ...produtoEditando, quantidade: e.target.value })}
+                    style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Digite o nome exato para confirmar..."
-                  value={confirmacaoEdicaoNome}
-                  onChange={(e) => setConfirmacaoEdicaoNome(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', fontSize: '13px' }}
-                />
+                <div>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Estoque Mínimo</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={produtoEditando.estoque_minimo || 0}
+                    onChange={(e) => setProdutoEditando({ ...produtoEditando, estoque_minimo: e.target.value })}
+                    style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
+                  />
+                </div>
+                {isAdmin && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#d1d5db' }}>Valor Unit. (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={produtoEditando.valor_unitario || 0}
+                      onChange={(e) => setProdutoEditando({ ...produtoEditando, valor_unitario: e.target.value })}
+                      style={{ width: '100%', padding: '9px', borderRadius: '6px' }}
+                    />
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
                 <button
                   type="button"
                   onClick={() => setProdutoEditando(null)}
-                  style={{ padding: '8px 16px', backgroundColor: '#1e2028', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', backgroundColor: '#1e2028', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '6px', cursor: 'pointer' }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={confirmacaoEdicaoNome !== produtoEditando.nome || processandoAcao}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: confirmacaoEdicaoNome === produtoEditando.nome ? '#d4af37' : '#3f3f46',
-                    color: confirmacaoEdicaoNome === produtoEditando.nome ? '#0c0d10' : '#9ca3af',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: confirmacaoEdicaoNome === produtoEditando.nome && !processandoAcao ? 'pointer' : 'not-allowed',
-                    fontWeight: 'bold',
-                  }}
+                  disabled={salvandoEdicao}
+                  style={{ padding: '8px 18px', backgroundColor: '#d4af37', color: '#0c0d10', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  {processandoAcao ? 'Salvando...' : 'Confirmar Edição'}
+                  {salvandoEdicao ? 'Salvando...' : 'Salvar Alterações'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
-      {produtoExcluindo && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ backgroundColor: '#15171c', border: '1px solid rgba(239, 68, 68, 0.5)', padding: '24px', borderRadius: '10px', width: '100%', maxWidth: '450px', color: '#f8fafc' }}>
-            <h4 style={{ margin: '0 0 12px 0', color: '#f87171' }}>Confirmar Exclusão</h4>
-            <p style={{ fontSize: '14px', color: '#d1d5db', marginBottom: '12px' }}>
-              Esta ação é irreversível. Para confirmar a exclusão do produto, digite o nome exato abaixo:
-            </p>
-            <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#f87171', backgroundColor: '#0e1014', padding: '8px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', marginBottom: '12px', userSelect: 'all' }}>
-              {produtoExcluindo.nome}
-            </p>
-
-            <input
-              type="text"
-              placeholder="Digite o nome exato para confirmar..."
-              value={confirmacaoExclusaoNome}
-              onChange={(e) => setConfirmacaoExclusaoNome(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '4px', marginBottom: '20px', fontSize: '14px' }}
-            />
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => setProdutoExcluindo(null)}
-                style={{ padding: '8px 16px', backgroundColor: '#1e2028', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmarExclusao}
-                disabled={confirmacaoExclusaoNome !== produtoExcluindo.nome || processandoAcao}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: confirmacaoExclusaoNome === produtoExcluindo.nome ? '#dc2626' : '#3f3f46',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: confirmacaoExclusaoNome === produtoExcluindo.nome && !processandoAcao ? 'pointer' : 'not-allowed',
-                  fontWeight: 'bold',
-                }}
-              >
-                {processandoAcao ? 'Excluindo...' : 'Excluir Definitivamente'}
-              </button>
-            </div>
           </div>
         </div>
       )}

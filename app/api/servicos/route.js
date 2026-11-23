@@ -26,7 +26,8 @@ export async function POST(req) {
     if (!token) return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
 
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.perfil === 'visualizador') {
+    const perfil = String(user.perfil || '').toLowerCase();
+    if (!['admin', 'operador'].includes(perfil)) {
       return NextResponse.json({ error: 'Perfil sem permissão.' }, { status: 403 });
     }
 
@@ -46,13 +47,7 @@ export async function POST(req) {
 
     const { data, error } = await supabaseAdmin
       .from('servicos')
-      .insert({
-        codigo,
-        nome,
-        descricao,
-        unidade,
-        valor,
-      })
+      .insert({ codigo, nome, descricao, unidade, valor })
       .select()
       .single();
 
@@ -82,7 +77,8 @@ export async function PUT(req) {
     if (!token) return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
 
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.perfil === 'visualizador') {
+    const perfil = String(user.perfil || '').toLowerCase();
+    if (!['admin', 'operador'].includes(perfil)) {
       return NextResponse.json({ error: 'Perfil sem permissão.' }, { status: 403 });
     }
 
@@ -131,7 +127,9 @@ export async function DELETE(req) {
     if (!token) return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401 });
 
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (!['admin', 'operador'].includes(user.perfil)) {
+    const perfil = String(user.perfil || '').toLowerCase();
+
+    if (!['admin', 'operador'].includes(perfil)) {
       return NextResponse.json({ error: 'Perfil sem permissão para excluir serviços.' }, { status: 403 });
     }
 
