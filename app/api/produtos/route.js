@@ -9,10 +9,7 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from('produtos')
-      .select(`
-        *,
-        fornecedores ( id, nome )
-      `)
+      .select('*')
       .order('nome', { ascending: true });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
