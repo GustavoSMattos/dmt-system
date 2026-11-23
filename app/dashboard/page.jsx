@@ -9,6 +9,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
 
+  // Estados para Contagem de Inventário
+  const [categoriaInventario, setCategoriaInventario] = useState('');
+  const [baixandoInventario, setBaixandoInventario] = useState(false);
+
   const carregarDados = async () => {
     setLoading(true);
     setErro('');
@@ -42,6 +46,77 @@ export default function DashboardPage() {
   useEffect(() => {
     carregarDados();
   }, []);
+
+  // Lista única de categorias cadastradas nos produtos
+  const categoriasDisponiveis = Array.from(
+    new Set(produtos.map((p) => p.categoria).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  // Gera e baixa o CSV filtrado pela categoria e grava o log no servidor
+  const handleBaixarContagemInventario = async () => {
+    if (!categoriaInventario) {
+      alert('Selecione uma categoria antes de baixar o CSV.');
+      return;
+    }
+
+    const itensFiltrados = produtos
+      .filter((p) => p.categoria === categoriaInventario)
+      .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+
+    if (itensFiltrados.length === 0) {
+      alert('Nenhum produto encontrado nesta categoria.');
+      return;
+    }
+
+    setBaixandoInventario(true);
+    try {
+      // 1. Registra o download no Log de Atividades com a categoria
+      await fetch('/api/inventario/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoria: categoriaInventario,
+          total_itens: itensFiltrados.length,
+        }),
+      });
+
+      // 2. Monta o CSV com: Código, Nome do Produto, Quantidade em Estoque e Estoque Atual (vazia)
+      const linhas = [
+        ['Codigo', 'Nome_do_Produto', 'Quantidade_em_Estoque', 'Estoque_Atual'],
+      ];
+
+      itensFiltrados.forEach((prod) => {
+        const qtd = Number(prod.quantidade || 0).toString().replace('.', ',');
+        linhas.push([
+          `"${String(prod.codigo || '').replace(/"/g, '""')}"`,
+          `"${String(prod.nome || '').replace(/"/g, '""')}"`,
+          qtd,
+          '',
+        ]);
+      });
+
+      const csvContent = '\uFEFF' + linhas.map((e) => e.join(';')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const categoriaSlug = categoriaInventario
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_');
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Contagem_Inventario_${categoriaSlug}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Erro ao gerar planilha de contagem de inventário.');
+    } finally {
+      setBaixandoInventario(false);
+    }
+  };
 
   const produtosUrgencia = [];
   const produtosAtencao = [];
@@ -139,6 +214,67 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* CARD: CONTAGEM DE INVENTÁRIO */}
+        <div
+          style={{
+            ...cardStyle,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '14px',
+          }}
+        >
+          <span style={{ fontSize: '15px', fontWeight: '600', color: '#e5c158', letterSpacing: '0.3px' }}>
+            Contagem de Inventário
+          </span>
+
+          <select
+            value={categoriaInventario}
+            onChange={(e) => setCategoriaInventario(e.target.value)}
+            disabled={loading}
+            style={{
+              width: '100%',
+              maxWidth: '240px',
+              padding: '9px 12px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              textAlign: 'center',
+            }}
+          >
+            <option value="">Categoria</option>
+            {categoriasDisponiveis.map((cat, idx) => (
+              <option key={idx} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={handleBaixarContagemInventario}
+            disabled={!categoriaInventario || baixandoInventario}
+            style={{
+              width: '100%',
+              maxWidth: '240px',
+              padding: '9px 16px',
+              background:
+                !categoriaInventario || baixandoInventario
+                  ? '#272a34'
+                  : 'linear-gradient(90deg, #d4af37 0%, #b58e22 100%)',
+              color: !categoriaInventario || baixandoInventario ? '#6b7280' : '#0c0d10',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: !categoriaInventario || baixandoInventario ? 'not-allowed' : 'pointer',
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            {baixandoInventario ? 'Gerando CSV...' : 'Baixar CSV'}
+          </button>
+        </div>
       </div>
 
       {/* PAINÉIS LADO A LADO: URGÊNCIA E ATENÇÃO */}
